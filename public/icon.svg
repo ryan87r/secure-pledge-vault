@@ -1,0 +1,30 @@
+<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="shieldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#8b5cf6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#06b6d4;stop-opacity:1" />
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+      <feMerge> 
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <!-- Shield Background -->
+  <path d="M16 2L6 6V16C6 22.5 10.5 28.5 16 30C21.5 28.5 26 22.5 26 16V6L16 2Z" 
+        fill="url(#shieldGradient)" 
+        filter="url(#glow)"/>
+  
+  <!-- Lock Icon -->
+  <path d="M12 14V12C12 9.79 13.79 8 16 8C18.21 8 20 9.79 20 12V14H22C22.55 14 23 14.45 23 15V21C23 21.55 22.55 22 22 22H10C9.45 22 9 21.55 9 21V15C9 14.45 9.45 14 10 14H12ZM14 12C14 10.9 14.9 10 16 10C17.1 10 18 10.9 18 12V14H14V12Z" 
+        fill="white" 
+        opacity="0.9"/>
+  
+  <!-- FHE Indicator -->
+  <circle cx="24" cy="8" r="3" fill="#10b981" opacity="0.8"/>
+  <text x="24" y="10" text-anchor="middle" fill="white" font-size="4" font-weight="bold">F</text>
+</svg>
