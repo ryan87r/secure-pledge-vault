@@ -1,7 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Lock, Eye, DollarSign, Shield } from "lucide-react";
 import { useSecurePledgeVaultContract } from "@/hooks/useContract";
-import heroImage from "@/assets/hero-privacy-funding.jpg";
 
 const Hero = () => {
   const { pledgeData, loading, isConnected } = useSecurePledgeVaultContract();
@@ -13,7 +12,7 @@ const Hero = () => {
       <div 
         className="absolute inset-0 opacity-20"
         style={{
-          backgroundImage: `url(${heroImage})`,
+          backgroundImage: `url(/hero-privacy-funding.jpg)`,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
         }}
