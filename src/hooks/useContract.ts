@@ -16,17 +16,26 @@ export const useSecurePledgeVaultContract = () => {
   const [pledgeData, setPledgeData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // Read contract data
+  // Check if contract address is valid
+  const isValidContractAddress = CONTRACT_ADDRESS && CONTRACT_ADDRESS !== '0x...' && CONTRACT_ADDRESS.startsWith('0x');
+
+  // Read contract data - only if contract address is valid
   const { data: pledgeCounter } = useReadContract({
-    address: CONTRACT_ADDRESS as `0x${string}`,
+    address: isValidContractAddress ? CONTRACT_ADDRESS as `0x${string}` : undefined,
     abi: SECURE_PLEDGE_VAULT_ABI,
     functionName: 'pledgeCounter',
+    query: {
+      enabled: isValidContractAddress && isConnected,
+    },
   });
 
   const { data: backingCounter } = useReadContract({
-    address: CONTRACT_ADDRESS as `0x${string}`,
+    address: isValidContractAddress ? CONTRACT_ADDRESS as `0x${string}` : undefined,
     abi: SECURE_PLEDGE_VAULT_ABI,
     functionName: 'backingCounter',
+    query: {
+      enabled: isValidContractAddress && isConnected,
+    },
   });
 
   // Write contract functions
@@ -72,7 +81,7 @@ export const useSecurePledgeVaultContract = () => {
     };
 
     loadPledgeData();
-  }, [pledgeCounter, isConnected, address]);
+  }, [pledgeCounter, isConnected]); // Removed address from dependencies
 
   return {
     pledgeData,
@@ -82,6 +91,7 @@ export const useSecurePledgeVaultContract = () => {
     isConnected,
     instance,
     signerPromise,
+    isValidContractAddress,
     createPledge: async (title: string, description: string, targetAmount: number, duration: number) => {
       if (!instance || !address) {
         throw new Error('Missing wallet or encryption service');

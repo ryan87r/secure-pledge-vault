@@ -16,7 +16,7 @@ const CATEGORY_MAP: Record<number, string> = {
 };
 
 const ProjectsGrid = () => {
-  const { pledgeData, loading, isConnected } = useSecurePledgeVaultContract();
+  const { pledgeData, loading, isConnected, isValidContractAddress } = useSecurePledgeVaultContract();
   const [projects, setProjects] = useState<any[]>([]);
   const [demoData, setDemoData] = useState<any>(null);
 
@@ -37,7 +37,7 @@ const ProjectsGrid = () => {
   }, []);
 
   useEffect(() => {
-    if (pledgeData && pledgeData.length > 0) {
+    if (isValidContractAddress && pledgeData && pledgeData.length > 0) {
       // Transform contract data to project format
       const transformedProjects = pledgeData.map((pledge: any, index: number) => ({
         id: pledge.pledgeId || index,
@@ -58,7 +58,7 @@ const ProjectsGrid = () => {
       }));
       setProjects(transformedProjects);
     } else if (demoData && demoData.pledges) {
-      // Use demo data when no contract data is available
+      // Use demo data when no contract data is available or contract address is invalid
       const demoProjects = demoData.pledges.map((pledge: any, index: number) => ({
         id: index,
         title: pledge.title,
@@ -81,7 +81,7 @@ const ProjectsGrid = () => {
       // Show empty state when no data
       setProjects([]);
     }
-  }, [pledgeData, demoData]);
+  }, [pledgeData, demoData, isValidContractAddress]);
 
   return (
     <section id="projects" className="py-20 bg-background">
@@ -103,9 +103,16 @@ const ProjectsGrid = () => {
         ) : projects.length === 0 ? (
           <div className="text-center py-12">
             <div className="text-muted-foreground text-lg mb-4">
-              {isConnected ? "No pledges found. Be the first to create one!" : "Connect your wallet to view pledges"}
+              {!isValidContractAddress ? "Demo mode: Contract not deployed yet" : 
+               isConnected ? "No pledges found. Be the first to create one!" : 
+               "Connect your wallet to view pledges"}
             </div>
-            {!isConnected && (
+            {!isValidContractAddress && (
+              <div className="text-sm text-muted-foreground">
+                Using demo data. Deploy contract to enable real functionality.
+              </div>
+            )}
+            {!isConnected && isValidContractAddress && (
               <div className="text-sm text-muted-foreground">
                 Connect your wallet to interact with the platform
               </div>
