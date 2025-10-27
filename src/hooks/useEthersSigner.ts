@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { useWalletClient } from 'wagmi';
 import { JsonRpcSigner } from 'ethers';
 import { BrowserProvider } from 'ethers';
@@ -23,12 +23,10 @@ export function useEthersSigner({ chainId }: { chainId?: number } = {}) {
     async function getSigner() {
       if (walletClient) {
         try {
-          console.log('🔄 Creating Ethers signer...');
           const ethSigner = await walletClientToSigner(walletClient);
           setSigner(ethSigner);
-          console.log('✅ Ethers signer created successfully');
         } catch (error) {
-          console.error('❌ Error creating signer:', error);
+          console.error('Error creating signer:', error);
           setSigner(undefined);
         }
       } else {

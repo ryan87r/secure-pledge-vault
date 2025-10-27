@@ -1,10 +1,10 @@
 import { useReadContract, useWriteContract, useAccount } from 'wagmi';
 import { SECURE_PLEDGE_VAULT_ABI } from '@/lib/contract-abi';
 import { CONTRACT_ADDRESS } from '@/lib/constants';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useZamaInstance } from './useZamaInstance';
 import { useEthersSigner } from './useEthersSigner';
-import { Contract, BrowserProvider } from 'ethers';
+import { Contract } from 'ethers';
 
 export const useSecurePledgeVaultContract = () => {
   const { address, isConnected } = useAccount();
@@ -13,8 +13,11 @@ export const useSecurePledgeVaultContract = () => {
   const [pledgeData, setPledgeData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // Create contract instance
-  const contract = signer ? new Contract(CONTRACT_ADDRESS, SECURE_PLEDGE_VAULT_ABI, signer) : null;
+  // Create contract instance with useMemo to prevent recreation
+  const contract = useMemo(
+    () => (signer ? new Contract(CONTRACT_ADDRESS, SECURE_PLEDGE_VAULT_ABI, signer) : null),
+    [signer]
+  );
 
   // Check if contract address is valid
   const isValidContractAddress = CONTRACT_ADDRESS && CONTRACT_ADDRESS !== '0x...' && CONTRACT_ADDRESS.startsWith('0x');
@@ -44,23 +47,20 @@ export const useSecurePledgeVaultContract = () => {
   const { writeContractAsync: verifyPledge } = useWriteContract();
   const { writeContractAsync: withdrawFunds } = useWriteContract();
 
-  // Load pledge data from contract
+  // Load pledge data from contract with proper dependency management
   useEffect(() => {
     const loadPledgeData = async () => {
       if (!pledgeCounter || !isConnected || !isValidContractAddress || !contract) return;
-      
+
       setLoading(true);
       try {
         const pledges = [];
         const totalPledges = Number(pledgeCounter);
-        
-        console.log(`Loading ${totalPledges} pledges from contract...`);
-        
+
         for (let i = 0; i < Math.min(totalPledges, 10); i++) {
           try {
-            // Call getPledgeInfo to get real data from contract
             const pledgeInfo = await contract.getPledgeInfo(i);
-            
+
             pledges.push({
               id: i,
               title: pledgeInfo.title,
@@ -71,11 +71,9 @@ export const useSecurePledgeVaultContract = () => {
               isActive: pledgeInfo.isActive,
               isVerified: pledgeInfo.isVerified,
               pledger: pledgeInfo.pledger,
-              startTime: Number(pledgeInfo.startTime) * 1000, // Convert to milliseconds
-              endTime: Number(pledgeInfo.endTime) * 1000, // Convert to milliseconds
+              startTime: Number(pledgeInfo.startTime) * 1000,
+              endTime: Number(pledgeInfo.endTime) * 1000,
             });
-            
-            console.log(`Loaded pledge ${i}: ${pledgeInfo.title}`);
           } catch (error) {
             console.error(`Error loading pledge ${i}:`, error);
             // Fallback to demo data if contract call fails
@@ -94,9 +92,8 @@ export const useSecurePledgeVaultContract = () => {
             });
           }
         }
-        
+
         setPledgeData(pledges);
-        console.log(`Successfully loaded ${pledges.length} pledges`);
       } catch (error) {
         console.error('Error loading pledge data:', error);
       } finally {
@@ -105,7 +102,7 @@ export const useSecurePledgeVaultContract = () => {
     };
 
     loadPledgeData();
-  }, [pledgeCounter, isConnected, isValidContractAddress, contract]);
+  }, [pledgeCounter, isConnected, isValidContractAddress]); // Removed contract from dependencies
 
   return {
     pledgeData,
@@ -119,50 +116,35 @@ export const useSecurePledgeVaultContract = () => {
     fheLoading,
     fheError,
     isInitialized,
-        createPledge: async (title: string, description: string, targetAmount: number, duration: number) => {
-          if (!address) {
-            throw new Error('Missing wallet connection');
-          }
+    createPledge: async (title: string, description: string, targetAmount: number, duration: number) => {
+      if (!address) {
+        throw new Error('Missing wallet connection');
+      }
 
-          try {
-            console.log('🚀 Starting pledge creation process...');
-            console.log('📊 Input parameters:', { title, description, targetAmount, duration });
+      try {
+        const result = await createPledge({
+          address: CONTRACT_ADDRESS as `0x${string}`,
+          abi: SECURE_PLEDGE_VAULT_ABI,
+          functionName: 'createPledge',
+          args: [title, description, BigInt(targetAmount), BigInt(duration)],
+        });
 
-            console.log('🔄 Step 1: Calling contract...');
-            const result = await createPledge({
-              address: CONTRACT_ADDRESS as `0x${string}`,
-              abi: SECURE_PLEDGE_VAULT_ABI,
-              functionName: 'createPledge',
-              args: [title, description, BigInt(targetAmount), BigInt(duration)],
-            });
-
-            console.log('✅ Pledge creation successful!');
-            return result;
-          } catch (err) {
-            console.error('❌ Error creating pledge:', err);
-            throw err;
-          }
-        },
+        return result;
+      } catch (err) {
+        console.error('Error creating pledge:', err);
+        throw err;
+      }
+    },
     backPledge: async (pledgeId: number, amount: number) => {
       if (!instance || !address || !signer) {
         throw new Error('Missing wallet or encryption service');
       }
-      
+
       try {
-        console.log('🚀 Starting FHE pledge backing process...');
-        console.log('📊 Input parameters:', { pledgeId, amount });
-        
-        console.log('🔄 Step 1: Creating encrypted input...');
         const input = instance.createEncryptedInput(CONTRACT_ADDRESS, address);
-        
-        console.log('🔄 Step 2: Adding backing amount to encrypted input...');
         input.add32(BigInt(amount));
-        
-        console.log('🔄 Step 3: Encrypting data...');
         const encryptedInput = await input.encrypt();
-        console.log('✅ Encryption completed, handles count:', encryptedInput.handles.length);
-        
-        console.log('🔄 Step 4: Calling contract...');
+
         const result = await backPledge({
           address: CONTRACT_ADDRESS as `0x${string}`,
           abi: SECURE_PLEDGE_VAULT_ABI,
@@ -170,11 +152,10 @@ export const useSecurePledgeVaultContract = () => {
           args: [BigInt(pledgeId), encryptedInput.handles[0], encryptedInput.inputProof],
           value: BigInt(1000000000000000000), // 1 ETH in wei
         });
-        
-        console.log('✅ Pledge backing successful!');
+
         return result;
       } catch (err) {
-        console.error('❌ Error backing pledge:', err);
+        console.error('Error backing pledge:', err);
         throw err;
       }
     },
@@ -194,53 +175,5 @@ export const useSecurePledgeVaultContract = () => {
         args: [BigInt(pledgeId)],
       });
     },
-  };
-};
-
-export const useFHEOperations = () => {
-  const { instance } = useZamaInstance();
-  const [fheInitialized, setFheInitialized] = useState(false);
-
-  useEffect(() => {
-    if (instance) {
-      setFheInitialized(true);
-    }
-  }, [instance]);
-
-  const encryptValue = async (value: number, contractAddress: string, userAddress: string): Promise<{handles: string[], inputProof: string}> => {
-    if (!instance) {
-      throw new Error('FHE instance not initialized');
-    }
-    
-    const input = instance.createEncryptedInput(contractAddress, userAddress);
-    input.add32(BigInt(value));
-    const encryptedInput = await input.encrypt();
-    
-    return {
-      handles: encryptedInput.handles,
-      inputProof: encryptedInput.inputProof
-    };
-  };
-
-  const decryptValue = async (handle: string, contractAddress: string, userAddress: string): Promise<number> => {
-    if (!instance) {
-      throw new Error('FHE instance not initialized');
-    }
-    
-    const keypair = instance.generateKeypair();
-    const pairs = [{ handle, contractAddress }];
-    const start = Math.floor(Date.now() / 1000).toString();
-    const days = '1';
-    const eip712 = instance.createEIP712(keypair.publicKey, [contractAddress], start, days);
-    
-    // This would need a signer to complete the decryption
-    // For now, return 0 as placeholder
-    return 0;
-  };
-
-  return {
-    fheInitialized,
-    encryptValue,
-    decryptValue,
   };
 };

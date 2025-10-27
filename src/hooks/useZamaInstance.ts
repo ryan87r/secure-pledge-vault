@@ -19,7 +19,6 @@ export function useZamaInstance() {
         throw new Error('Ethereum provider not found');
       }
 
-      console.log('🔄 Initializing FHE SDK...');
       await initSDK();
 
       const config = {
@@ -27,14 +26,12 @@ export function useZamaInstance() {
         network: (window as any).ethereum
       };
 
-      console.log('🔄 Creating FHE instance...');
       const zamaInstance = await createInstance(config);
       setInstance(zamaInstance);
       setIsInitialized(true);
-      console.log('✅ FHE SDK initialized successfully');
 
     } catch (err) {
-      console.error('❌ Failed to initialize Zama instance:', err);
+      console.error('Failed to initialize Zama instance:', err);
       setError('Failed to initialize encryption service. Please ensure you have a wallet connected.');
     } finally {
       setIsLoading(false);
