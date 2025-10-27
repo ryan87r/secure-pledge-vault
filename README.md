@@ -252,6 +252,45 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 - **Vite Team** - For the incredible build tool
 - **shadcn/ui** - For the beautiful components
 
+## 🔐 Security Setup
+
+### Environment Variables
+
+**IMPORTANT**: Never commit your `.env` file with real private keys!
+
+1. Copy the template:
+```bash
+cp env.template .env
+```
+
+2. Edit `.env` with your actual values:
+```bash
+# Required: Your Sepolia testnet private key
+PRIVATE_KEY=your_actual_private_key_here
+
+# Optional: Custom RPC URL
+SEPOLIA_RPC_URL=https://your-rpc-url.com
+```
+
+### Deployment Commands
+
+1. **Deploy the contract**:
+```bash
+npx hardhat run scripts/deploy.cjs --network sepolia
+```
+
+2. **Initialize demo data**:
+```bash
+node scripts/initialize-demo.cjs
+```
+
+### Security Reminders
+
+- ✅ **Use testnet private keys only** - Never use mainnet private keys
+- ✅ **Keep your private key secure** - Never share it with anyone
+- ✅ **The .env file is in .gitignore** - It won't be committed accidentally
+- ✅ **Use a dedicated testnet wallet** - Don't use your main wallet
+
 ## 📞 Support
 
 - **🐛 Issues**: [GitHub Issues](https://github.com/ryan87r/secure-pledge-vault/issues)

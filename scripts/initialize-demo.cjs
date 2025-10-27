@@ -55,14 +55,20 @@ async function initializeDemoData() {
         console.log('📄 Using contract address from deployment-info.json:', contractAddress);
       } catch (error) {
         console.log('❌ No contract address found. Please deploy the contract first.');
-        console.log('Run: node scripts/deploy-contract.js');
+        console.log('Run: npx hardhat run scripts/deploy.cjs --network sepolia');
         return;
       }
     }
     
     // Connect to contract (you'll need to provide a signer)
     const provider = new ethers.JsonRpcProvider(process.env.SEPOLIA_RPC_URL || "https://1rpc.io/sepolia");
-    const wallet = new ethers.Wallet(process.env.PRIVATE_KEY || "", provider);
+    const privateKey = process.env.PRIVATE_KEY;
+    
+    if (!privateKey) {
+      throw new Error('PRIVATE_KEY environment variable is required');
+    }
+    
+    const wallet = new ethers.Wallet(privateKey, provider);
     const contract = new ethers.Contract(contractAddress, CONTRACT_ABI, wallet);
     
     console.log('Creating demo pledges...');

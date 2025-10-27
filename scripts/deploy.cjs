@@ -2,6 +2,15 @@ const { ethers } = require("hardhat");
 
 async function main() {
   console.log("Deploying SecurePledgeVault...");
+  
+  // Check for required environment variables
+  if (!process.env.PRIVATE_KEY) {
+    throw new Error('PRIVATE_KEY environment variable is required');
+  }
+  
+  if (!process.env.SEPOLIA_RPC_URL) {
+    console.log('⚠️  SEPOLIA_RPC_URL not set, using default');
+  }
 
   // Get the contract factory
   const SecurePledgeVault = await ethers.getContractFactory("SecurePledgeVault");
