@@ -6,13 +6,15 @@ import { useState, useEffect } from "react";
 const IMAGE_MAP: Record<number, string> = {
   0: "/project-vr-headset.jpg",
   1: "/project-smart-home.jpg", 
-  2: "/project-solar-tech.jpg"
+  2: "/project-solar-tech.jpg",
+  3: "/project-placeholder.jpg"
 };
 
 const CATEGORY_MAP: Record<number, string> = {
   0: "Technology",
   1: "Security", 
-  2: "Environment"
+  2: "Environment",
+  3: "General"
 };
 
 const ProjectsGrid = () => {
