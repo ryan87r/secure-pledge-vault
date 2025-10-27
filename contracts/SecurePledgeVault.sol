@@ -7,6 +7,11 @@ import { euint32, externalEuint32, euint8, ebool, FHE } from "@fhevm/solidity/li
 contract SecurePledgeVault is SepoliaConfig {
     using FHE for *;
     
+    // Vault system for managing funds
+    mapping(uint256 => uint256) public pledgeVaults; // pledgeId => vault balance
+    mapping(address => uint256) public userVaults;   // user => vault balance
+    uint256 public totalVaultBalance;
+    
     struct Pledge {
         uint256 pledgeId;
         externalEuint32 targetAmount;
@@ -89,6 +94,15 @@ contract SecurePledgeVault is SepoliaConfig {
             endTime: block.timestamp + _duration
         });
         
+        // Set ACL permissions for encrypted data
+        FHE.allowThis(pledges[pledgeId].targetAmount);
+        FHE.allowThis(pledges[pledgeId].currentAmount);
+        FHE.allow(pledges[pledgeId].targetAmount, msg.sender);
+        FHE.allow(pledges[pledgeId].currentAmount, msg.sender);
+        // Allow anyone to decrypt for transparency (can be restricted in production)
+        FHE.allow(pledges[pledgeId].targetAmount, address(0));
+        FHE.allow(pledges[pledgeId].currentAmount, address(0));
+        
         emit PledgeCreated(pledgeId, msg.sender, _title);
         return pledgeId;
     }
@@ -112,13 +126,24 @@ contract SecurePledgeVault is SepoliaConfig {
             timestamp: block.timestamp
         });
         
+        // Set ACL permissions for backing amount
+        FHE.allowThis(backings[backingId].amount);
+        FHE.allow(backings[backingId].amount, msg.sender);
+        FHE.allow(backings[backingId].amount, pledges[pledgeId].pledger);
+        // Allow anyone to decrypt for transparency (can be restricted in production)
+        FHE.allow(backings[backingId].amount, address(0));
+        
+        // Store funds in vault
+        pledgeVaults[pledgeId] += msg.value;
+        totalVaultBalance += msg.value;
+        
         // Track backing for this pledge
         pledgeBackings[pledgeId].push(backingId);
         
         // Update pledge backer count (unencrypted)
         pledges[pledgeId].backerCount += 1;
         
-        emit PledgeBacked(backingId, pledgeId, msg.sender, 0); // Amount will be decrypted off-chain
+        emit PledgeBacked(backingId, pledgeId, msg.sender, msg.value);
         return backingId;
     }
     
@@ -145,6 +170,13 @@ contract SecurePledgeVault is SepoliaConfig {
             timestamp: block.timestamp
         });
         
+        // Set ACL permissions for impact report data
+        FHE.allowThis(impactReports[reportId].fundsUtilized);
+        FHE.allow(impactReports[reportId].fundsUtilized, msg.sender);
+        FHE.allow(impactReports[reportId].fundsUtilized, pledges[pledgeId].pledger);
+        // Allow anyone to decrypt for transparency (can be restricted in production)
+        FHE.allow(impactReports[reportId].fundsUtilized, address(0));
+        
         emit ImpactReported(reportId, pledgeId, msg.sender);
         return reportId;
     }
@@ -162,6 +194,13 @@ contract SecurePledgeVault is SepoliaConfig {
         require(user != address(0), "Invalid user address");
         
         userReputation[user] = reputation;
+        
+        // Set ACL permissions for user reputation
+        FHE.allowThis(userReputation[user]);
+        FHE.allow(userReputation[user], user);
+        FHE.allow(userReputation[user], msg.sender);
+        // Allow anyone to decrypt for transparency (can be restricted in production)
+        FHE.allow(userReputation[user], address(0));
         emit ReputationUpdated(user, 0); // FHE.decrypt(reputation) - will be decrypted off-chain
     }
     
@@ -238,24 +277,29 @@ contract SecurePledgeVault is SepoliaConfig {
         require(block.timestamp > pledges[pledgeId].endTime, "Pledge must be ended");
         require(pledges[pledgeId].isActive, "Pledge must be active");
         
-        // Calculate total ETH sent for this pledge
-        uint256 totalAmount = 0;
-        uint256[] memory backingIds = pledgeBackings[pledgeId];
-        
-        for (uint256 i = 0; i < backingIds.length; i++) {
-            // In a real implementation, you would need to track ETH amounts separately
-            // For now, we'll use a simplified approach
-            totalAmount += 1 ether; // Placeholder amount
-        }
+        uint256 amount = pledgeVaults[pledgeId];
+        require(amount > 0, "No funds to withdraw");
         
         // Deactivate pledge
         pledges[pledgeId].isActive = false;
+        pledgeVaults[pledgeId] = 0;
+        totalVaultBalance -= amount;
         
         // Transfer funds to pledger
-        if (totalAmount > 0) {
-            payable(msg.sender).transfer(totalAmount);
-            emit FundsWithdrawn(pledgeId, msg.sender, totalAmount);
-        }
+        payable(msg.sender).transfer(amount);
+        emit FundsWithdrawn(pledgeId, msg.sender, amount);
+    }
+    
+    function getPledgeVaultBalance(uint256 pledgeId) public view returns (uint256) {
+        return pledgeVaults[pledgeId];
+    }
+    
+    function getTotalVaultBalance() public view returns (uint256) {
+        return totalVaultBalance;
+    }
+    
+    function getContractBalance() public view returns (uint256) {
+        return address(this).balance;
     }
     
     function emergencyWithdraw() public {

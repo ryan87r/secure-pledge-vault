@@ -1,65 +1,87 @@
 import ProjectCard from "./ProjectCard";
 import { useSecurePledgeVaultContract } from "@/hooks/useContract";
-import vrHeadsetImage from "@/assets/project-vr-headset.jpg";
-import solarTechImage from "@/assets/project-solar-tech.jpg";
-import smartHomeImage from "@/assets/project-smart-home.jpg";
+import { useState, useEffect } from "react";
+
+// Image mapping for demo projects
+const IMAGE_MAP: Record<number, string> = {
+  0: "/project-vr-headset.jpg",
+  1: "/project-smart-home.jpg", 
+  2: "/project-solar-tech.jpg"
+};
+
+const CATEGORY_MAP: Record<number, string> = {
+  0: "Technology",
+  1: "Security", 
+  2: "Environment"
+};
 
 const ProjectsGrid = () => {
   const { pledgeData, loading, isConnected } = useSecurePledgeVaultContract();
+  const [projects, setProjects] = useState<any[]>([]);
+  const [demoData, setDemoData] = useState<any>(null);
 
-  // Mock data for demonstration when not connected
-  const mockProjects = [
-    {
-      id: 0,
-      title: "NeuralVR: Next-Gen Gaming Headset",
-      description: "Revolutionary VR headset with neural interface technology for immersive gaming experiences. Direct brain-computer interaction for unprecedented realism.",
-      pledger: "TechVision Labs",
-      image: vrHeadsetImage,
-      category: "Technology",
-      targetAmount: 100000,
-      currentAmount: 67000,
-      backerCount: 234,
-      isActive: true,
-      isVerified: true,
-      startTime: Date.now() - 86400000 * 15,
-      endTime: Date.now() + 86400000 * 15,
-      isEncrypted: true
-    },
-    {
-      id: 1,
-      title: "SolarFlow: Portable Clean Energy",
-      description: "Compact solar panels with advanced energy storage. Perfect for off-grid living and emergency power backup systems.",
-      pledger: "GreenTech Innovations",
-      image: solarTechImage,
-      category: "Green Tech",
-      targetAmount: 75000,
-      currentAmount: 66750,
-      backerCount: 567,
-      isActive: true,
-      isVerified: true,
-      startTime: Date.now() - 86400000 * 22,
-      endTime: Date.now() + 86400000 * 8,
-      isEncrypted: false
-    },
-    {
-      id: 2,
-      title: "HomeAI: Smart Living Assistant",
-      description: "AI-powered home automation with holographic interface. Control your entire smart home with gesture and voice commands.",
-      pledger: "FutureHome Solutions",
-      image: smartHomeImage,
-      category: "AI & IoT",
-      targetAmount: 120000,
-      currentAmount: 54000,
-      backerCount: 128,
-      isActive: true,
-      isVerified: false,
-      startTime: Date.now() - 86400000 * 8,
-      endTime: Date.now() + 86400000 * 22,
-      isEncrypted: true
+  // Load demo data
+  useEffect(() => {
+    const loadDemoData = async () => {
+      try {
+        const response = await fetch('/demo-data.json');
+        if (response.ok) {
+          const data = await response.json();
+          setDemoData(data);
+        }
+      } catch (error) {
+        console.log('No demo data found, using contract data only');
+      }
+    };
+    loadDemoData();
+  }, []);
+
+  useEffect(() => {
+    if (pledgeData && pledgeData.length > 0) {
+      // Transform contract data to project format
+      const transformedProjects = pledgeData.map((pledge: any, index: number) => ({
+        id: pledge.pledgeId || index,
+        title: pledge.title || `Pledge ${index + 1}`,
+        description: pledge.description || "No description available",
+        pledger: pledge.pledger || "Unknown",
+        image: IMAGE_MAP[index] || "/project-placeholder.jpg",
+        category: CATEGORY_MAP[index] || "General",
+        targetAmount: 0, // Will be decrypted from encrypted data
+        currentAmount: 0, // Will be decrypted from encrypted data
+        backerCount: pledge.backerCount || 0,
+        isActive: pledge.isActive || false,
+        isVerified: pledge.isVerified || false,
+        startTime: pledge.startTime || Date.now(),
+        endTime: pledge.endTime || Date.now() + 86400000 * 30,
+        isEncrypted: true,
+        vaultBalance: pledge.vaultBalance || 0
+      }));
+      setProjects(transformedProjects);
+    } else if (demoData && demoData.pledges) {
+      // Use demo data when no contract data is available
+      const demoProjects = demoData.pledges.map((pledge: any, index: number) => ({
+        id: index,
+        title: pledge.title,
+        description: pledge.description,
+        pledger: "Demo Creator",
+        image: IMAGE_MAP[index] || "/project-placeholder.jpg",
+        category: pledge.category,
+        targetAmount: pledge.targetAmount,
+        currentAmount: Math.floor(pledge.targetAmount * 0.6), // 60% funded
+        backerCount: Math.floor(Math.random() * 100) + 50,
+        isActive: true,
+        isVerified: true,
+        startTime: Date.now() - 86400000 * 15,
+        endTime: Date.now() + 86400000 * pledge.duration,
+        isEncrypted: false,
+        vaultBalance: Math.floor(pledge.targetAmount * 0.6)
+      }));
+      setProjects(demoProjects);
+    } else {
+      // Show empty state when no data
+      setProjects([]);
     }
-  ];
-
-  const projects = isConnected && pledgeData.length > 0 ? pledgeData : mockProjects;
+  }, [pledgeData, demoData]);
 
   return (
     <section id="projects" className="py-20 bg-background">
@@ -77,6 +99,17 @@ const ProjectsGrid = () => {
         {loading ? (
           <div className="flex justify-center items-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+          </div>
+        ) : projects.length === 0 ? (
+          <div className="text-center py-12">
+            <div className="text-muted-foreground text-lg mb-4">
+              {isConnected ? "No pledges found. Be the first to create one!" : "Connect your wallet to view pledges"}
+            </div>
+            {!isConnected && (
+              <div className="text-sm text-muted-foreground">
+                Connect your wallet to interact with the platform
+              </div>
+            )}
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">

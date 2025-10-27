@@ -1,0 +1,32 @@
+{
+  "pledges": [
+    {
+      "title": "VR Headset for Education",
+      "description": "Revolutionary VR headset designed specifically for educational environments. Features eye-tracking technology, comfortable design for extended use, and comprehensive educational content library.",
+      "targetAmount": 50000,
+      "duration": 30,
+      "category": "Technology",
+      "image": "/project-vr-headset.jpg"
+    },
+    {
+      "title": "Smart Home Security System",
+      "description": "Advanced smart home security system with AI-powered threat detection, real-time monitoring, and seamless integration with existing home automation systems.",
+      "targetAmount": 75000,
+      "duration": 45,
+      "category": "Security",
+      "image": "/project-smart-home.jpg"
+    },
+    {
+      "title": "Solar Technology Innovation",
+      "description": "Next-generation solar panel technology with improved efficiency and durability. Includes smart energy management system and IoT integration for optimal performance monitoring.",
+      "targetAmount": 100000,
+      "duration": 60,
+      "category": "Environment",
+      "image": "/project-solar-tech.jpg"
+    }
+  ],
+  "contractAddress": "0x1234567890123456789012345678901234567890",
+  "network": "sepolia",
+  "deployer": "0xB60c5FD911A02036Fc7B50643AF3D5018F588bD1",
+  "initializedAt": "2025-10-27T07:39:39.997Z"
+}

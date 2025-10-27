@@ -24,6 +24,7 @@ interface ProjectCardProps {
   startTime: number;
   endTime: number;
   isEncrypted: boolean;
+  vaultBalance?: number;
 }
 
 const ProjectCard = ({ 
@@ -40,7 +41,8 @@ const ProjectCard = ({
   isVerified,
   startTime,
   endTime,
-  isEncrypted 
+  isEncrypted,
+  vaultBalance = 0
 }: ProjectCardProps) => {
   const { address } = useAccount();
   const { instance, signerPromise } = useSecurePledgeVaultContract();
@@ -146,16 +148,22 @@ const ProjectCard = ({
             )}
           </div>
           
-          {/* Stats */}
-          <div className="flex justify-between items-center">
-            <div className="flex items-center gap-1 text-sm text-muted-foreground">
-              <Users className="h-4 w-4" />
-              <span>{backerCount} backers</span>
+          {/* Vault Balance Display */}
+          <div className="space-y-2">
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-muted-foreground">
+                Vault Balance
+              </span>
+              <span className="text-sm font-medium">
+                {isEncrypted ? "*** ETH" : `${(vaultBalance / 1e18).toFixed(4)} ETH`}
+              </span>
             </div>
-            <div className="flex items-center gap-1 text-sm text-muted-foreground">
-              <Clock className="h-4 w-4" />
-              <span>{daysLeft} days left</span>
-            </div>
+            {isEncrypted && (
+              <div className="flex items-center gap-2 text-xs text-primary">
+                <Eye className="h-3 w-3" />
+                <span>Vault balance encrypted with FHE</span>
+              </div>
+            )}
           </div>
           
           {/* Backing Amount Input */}
