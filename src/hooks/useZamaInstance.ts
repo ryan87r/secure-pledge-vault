@@ -16,9 +16,13 @@ export function useZamaInstance() {
 
       // Check if ethereum provider is available
       if (!(window as any).ethereum) {
-        throw new Error('Ethereum provider not found');
+        throw new Error('Ethereum provider not found. Please install MetaMask or another Web3 wallet.');
       }
 
+      // Wait a bit for the provider to be fully ready
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      console.log('Initializing FHE SDK...');
       await initSDK();
 
       const config = {
@@ -26,13 +30,16 @@ export function useZamaInstance() {
         network: (window as any).ethereum
       };
 
+      console.log('Creating FHE instance...');
       const zamaInstance = await createInstance(config);
       setInstance(zamaInstance);
       setIsInitialized(true);
+      console.log('FHE SDK initialized successfully');
 
     } catch (err) {
       console.error('Failed to initialize Zama instance:', err);
-      setError('Failed to initialize encryption service. Please ensure you have a wallet connected.');
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+      setError(`Failed to initialize encryption service: ${errorMessage}. Please ensure you have a wallet connected and try refreshing the page.`);
     } finally {
       setIsLoading(false);
     }
