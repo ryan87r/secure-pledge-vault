@@ -4,10 +4,10 @@ import { useState, useEffect } from "react";
 
 // Image mapping for demo projects
 const IMAGE_MAP: Record<number, string> = {
-  0: "/project-vr-headset.jpg",
-  1: "/project-smart-home.jpg", 
-  2: "/project-solar-tech.jpg",
-  3: "/project-placeholder.jpg"
+  0: "/project-vr-headset.svg",
+  1: "/project-smart-home.svg", 
+  2: "/project-solar-tech.svg",
+  3: "/project-placeholder.svg"
 };
 
 const CATEGORY_MAP: Record<number, string> = {
