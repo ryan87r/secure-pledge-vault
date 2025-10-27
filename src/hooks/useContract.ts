@@ -118,11 +118,19 @@ export const useSecurePledgeVaultContract = () => {
       }
 
       try {
+        // Convert days to seconds
+        const durationInSeconds = duration * 24 * 60 * 60;
+        console.log('Duration conversion in useContract:', {
+          days: duration,
+          seconds: durationInSeconds,
+          hours: durationInSeconds / 3600
+        });
+        
         const result = await createPledge({
           address: CONTRACT_ADDRESS as `0x${string}`,
           abi: SECURE_PLEDGE_VAULT_ABI,
           functionName: 'createPledge',
-          args: [title, description, BigInt(targetAmount), BigInt(duration)],
+          args: [title, description, BigInt(targetAmount), BigInt(durationInSeconds)],
         });
 
         return result;

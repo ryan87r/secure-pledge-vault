@@ -31,17 +31,15 @@ const CreatePledgeForm = () => {
     setIsCreating(true);
     try {
       console.log('Creating pledge with data:', formData);
-      const durationInSeconds = parseInt(formData.duration) * 24 * 60 * 60;
       console.log('Duration conversion:', {
         days: formData.duration,
-        seconds: durationInSeconds,
-        hours: durationInSeconds / 3600
+        willBeConvertedToSeconds: true
       });
       const result = await createPledge(
         formData.title,
         formData.description,
         parseFloat(formData.targetAmount),
-        durationInSeconds // Convert days to seconds
+        parseInt(formData.duration) // Pass days directly, let useContract convert to seconds
       );
       
       console.log('Pledge creation result:', result);
