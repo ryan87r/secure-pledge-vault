@@ -47,23 +47,29 @@ const ProjectsGrid = () => {
   useEffect(() => {
     if (isValidContractAddress && pledgeData && pledgeData.length > 0) {
       // Transform contract data to project format
-      const transformedProjects = pledgeData.map((pledge: any, index: number) => ({
-        id: pledge.id || pledge.pledgeId || index,
-        title: pledge.title || `Pledge ${index + 1}`,
-        description: pledge.description || "No description available",
-        pledger: pledge.pledger || "Unknown",
-        image: IMAGE_MAP[index] || "/project-placeholder.jpg",
-        category: CATEGORY_MAP[index] || "General",
-        targetAmount: pledge.targetAmount || 0,
-        currentAmount: pledge.currentAmount || 0,
-        backerCount: pledge.backerCount || 0,
-        isActive: pledge.isActive !== undefined ? pledge.isActive : true,
-        isVerified: pledge.isVerified || false,
-        startTime: pledge.startTime || Date.now(),
-        endTime: pledge.endTime || Date.now() + 86400000 * 30,
-        isEncrypted: false, // Show actual data for newly created pledges
-        vaultBalance: pledge.vaultBalance || 0
-      }));
+      const transformedProjects = pledgeData.map((pledge: any, index: number) => {
+        // Use a more robust image mapping that cycles through available images
+        const imageIndex = index % Object.keys(IMAGE_MAP).length;
+        const imageKey = Object.keys(IMAGE_MAP)[imageIndex];
+        
+        return {
+          id: pledge.id || pledge.pledgeId || index,
+          title: pledge.title || `Pledge ${index + 1}`,
+          description: pledge.description || "No description available",
+          pledger: pledge.pledger || "Unknown",
+          image: IMAGE_MAP[imageKey] || "/project-placeholder.jpg",
+          category: CATEGORY_MAP[imageKey] || "General",
+          targetAmount: pledge.targetAmount || 0,
+          currentAmount: pledge.currentAmount || 0,
+          backerCount: pledge.backerCount || 0,
+          isActive: pledge.isActive !== undefined ? pledge.isActive : true,
+          isVerified: pledge.isVerified || false,
+          startTime: pledge.startTime || Date.now(),
+          endTime: pledge.endTime || Date.now() + 86400000 * 30,
+          isEncrypted: false, // Show actual data for newly created pledges
+          vaultBalance: pledge.vaultBalance || 0
+        };
+      });
       setProjects(transformedProjects);
     } else if (demoData && demoData.pledges) {
       // Use demo data when no contract data is available or contract address is invalid

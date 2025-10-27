@@ -51,6 +51,15 @@ const ProjectCard = ({
 
   const progress = Math.min((currentAmount / targetAmount) * 100, 100);
   const daysLeft = Math.max(0, Math.ceil((endTime - Date.now()) / (1000 * 60 * 60 * 24)));
+  
+  // Debug logging for time calculation
+  console.log(`Pledge ${id} time debug:`, {
+    endTime,
+    currentTime: Date.now(),
+    timeDiff: endTime - Date.now(),
+    daysLeft,
+    endDate: new Date(endTime).toLocaleDateString()
+  });
 
   const handleBackPledge = async () => {
     if (!address) {
