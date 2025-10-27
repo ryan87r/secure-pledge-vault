@@ -153,13 +153,24 @@ export const useSecurePledgeVaultContract = () => {
         console.log('Encrypted input handles:', encryptedInput.handles);
         console.log('Encrypted input proof:', encryptedInput.inputProof);
         
-        // Ensure handles and proof are properly formatted as hex strings
-        const handle = typeof encryptedInput.handles[0] === 'string' 
-          ? encryptedInput.handles[0] 
-          : `0x${encryptedInput.handles[0].toString(16)}`;
-        const proof = typeof encryptedInput.inputProof === 'string' 
-          ? encryptedInput.inputProof 
-          : `0x${encryptedInput.inputProof.toString(16)}`;
+        // Convert handles and proof to proper hex format (reference aidwell-connect)
+        const convertHex = (handle: any): string => {
+          if (typeof handle === 'string') {
+            return handle.startsWith('0x') ? handle : `0x${handle}`;
+          } else if (handle instanceof Uint8Array) {
+            return `0x${Array.from(handle).map(b => b.toString(16).padStart(2, '0')).join('')}`;
+          } else if (Array.isArray(handle)) {
+            return `0x${handle.map(b => b.toString(16).padStart(2, '0')).join('')}`;
+          }
+          return `0x${handle.toString()}`;
+        };
+
+        const handle = convertHex(encryptedInput.handles[0]);
+        const proof = `0x${Array.from(encryptedInput.inputProof as Uint8Array)
+          .map(b => b.toString(16).padStart(2, '0')).join('')}`;
+
+        console.log('Converted handle:', handle);
+        console.log('Converted proof:', proof);
 
         const result = await backPledge({
           address: CONTRACT_ADDRESS as `0x${string}`,
