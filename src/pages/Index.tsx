@@ -3,12 +3,14 @@ import ProjectsGrid from "@/components/ProjectsGrid";
 import HowItWorks from "@/components/HowItWorks";
 import About from "@/components/About";
 import CreatePledgeForm from "@/components/CreatePledgeForm";
+import UserBackings from "@/components/UserBackings";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Plus, Eye, Lock } from "lucide-react";
 
 const Index = () => {
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [activeTab, setActiveTab] = useState<'pledges' | 'my-backings'>('pledges');
 
   return (
     <div className="min-h-screen bg-privacy-gradient">
@@ -36,8 +38,34 @@ const Index = () => {
           {showCreateForm && <CreatePledgeForm />}
         </div>
       </section>
+
+      {/* Tab Navigation */}
+      <section className="py-8 bg-background border-t border-border">
+        <div className="container mx-auto px-4">
+          <div className="flex justify-center gap-4 mb-8">
+            <Button
+              variant={activeTab === 'pledges' ? 'default' : 'outline'}
+              onClick={() => setActiveTab('pledges')}
+              className="flex items-center gap-2"
+            >
+              <Eye className="h-4 w-4" />
+              All Pledges
+            </Button>
+            <Button
+              variant={activeTab === 'my-backings' ? 'default' : 'outline'}
+              onClick={() => setActiveTab('my-backings')}
+              className="flex items-center gap-2"
+            >
+              <Lock className="h-4 w-4" />
+              My Backings
+            </Button>
+          </div>
+        </div>
+      </section>
+
+      {/* Content based on active tab */}
+      {activeTab === 'pledges' ? <ProjectsGrid /> : <UserBackings />}
       
-      <ProjectsGrid />
       <HowItWorks />
       <About />
     </div>

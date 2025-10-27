@@ -20,7 +20,7 @@ export const useSecurePledgeVaultContract = () => {
   );
 
   // Check if contract address is valid
-  const isValidContractAddress = CONTRACT_ADDRESS && CONTRACT_ADDRESS !== '0x...' && CONTRACT_ADDRESS.startsWith('0x');
+  const isValidContractAddress = CONTRACT_ADDRESS && CONTRACT_ADDRESS.startsWith('0x') && CONTRACT_ADDRESS.length === 42;
 
   // Read contract data - only if contract address is valid
   const { data: pledgeCounter } = useReadContract({
@@ -126,12 +126,14 @@ export const useSecurePledgeVaultContract = () => {
           hours: durationInSeconds / 3600
         });
         
-        const result = await createPledge({
-          address: CONTRACT_ADDRESS as `0x${string}`,
-          abi: SECURE_PLEDGE_VAULT_ABI,
-          functionName: 'createPledge',
-          args: [title, description, BigInt(targetAmount), BigInt(durationInSeconds)],
-        });
+                const result = await createPledge({
+                  address: CONTRACT_ADDRESS as `0x${string}`,
+                  abi: SECURE_PLEDGE_VAULT_ABI,
+                  functionName: 'createPledge',
+                  args: [title, description, BigInt(targetAmount), BigInt(durationInSeconds)],
+                  chain: undefined,
+                  account: undefined,
+                });
 
         return result;
       } catch (err) {
@@ -180,13 +182,15 @@ export const useSecurePledgeVaultContract = () => {
         console.log('Converted handle:', handle);
         console.log('Converted proof:', proof);
 
-        const result = await backPledge({
-          address: CONTRACT_ADDRESS as `0x${string}`,
-          abi: SECURE_PLEDGE_VAULT_ABI,
-          functionName: 'backPledge',
-          args: [BigInt(pledgeId), handle, proof],
-          value: BigInt(amountInWei), // Send actual amount in wei
-        });
+                const result = await backPledge({
+                  address: CONTRACT_ADDRESS as `0x${string}`,
+                  abi: SECURE_PLEDGE_VAULT_ABI,
+                  functionName: 'backPledge',
+                  args: [BigInt(pledgeId), handle as `0x${string}`, proof as `0x${string}`],
+                  value: BigInt(amountInWei), // Send actual amount in wei
+                  chain: undefined,
+                  account: undefined,
+                });
 
         return result;
       } catch (err) {
@@ -194,21 +198,43 @@ export const useSecurePledgeVaultContract = () => {
         throw err;
       }
     },
-    verifyPledge: (pledgeId: number, isVerified: boolean) => {
-      return verifyPledge({
-        address: CONTRACT_ADDRESS as `0x${string}`,
-        abi: SECURE_PLEDGE_VAULT_ABI,
-        functionName: 'verifyPledge',
-        args: [BigInt(pledgeId), isVerified],
-      });
-    },
-    withdrawFunds: (pledgeId: number) => {
-      return withdrawFunds({
-        address: CONTRACT_ADDRESS as `0x${string}`,
-        abi: SECURE_PLEDGE_VAULT_ABI,
-        functionName: 'withdrawFunds',
-        args: [BigInt(pledgeId)],
-      });
-    },
-  };
-};
+            verifyPledge: (pledgeId: number, isVerified: boolean) => {
+              return verifyPledge({
+                address: CONTRACT_ADDRESS as `0x${string}`,
+                abi: SECURE_PLEDGE_VAULT_ABI,
+                functionName: 'verifyPledge',
+                args: [BigInt(pledgeId), isVerified],
+                chain: undefined,
+                account: undefined,
+              });
+            },
+            withdrawFunds: (pledgeId: number) => {
+              return withdrawFunds({
+                address: CONTRACT_ADDRESS as `0x${string}`,
+                abi: SECURE_PLEDGE_VAULT_ABI,
+                functionName: 'withdrawFunds',
+                args: [BigInt(pledgeId)],
+                chain: undefined,
+                account: undefined,
+              });
+            },
+            getUserBackings: async (userAddress: string) => {
+              if (!contract) {
+                throw new Error('Contract not available');
+              }
+              return await contract.getUserBackings(userAddress);
+            },
+            getBackingInfo: async (backingId: number) => {
+              if (!contract) {
+                throw new Error('Contract not available');
+              }
+              return await contract.getBackingInfo(backingId);
+            },
+            getPledgeBackings: async (pledgeId: number) => {
+              if (!contract) {
+                throw new Error('Contract not available');
+              }
+              return await contract.getPledgeBackings(pledgeId);
+            },
+          };
+        };

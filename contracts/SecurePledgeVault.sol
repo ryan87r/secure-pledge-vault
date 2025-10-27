@@ -48,6 +48,7 @@ contract SecurePledgeVault is SepoliaConfig {
     mapping(uint256 => ImpactReport) public impactReports;
     mapping(address => euint32) public userReputation;
     mapping(uint256 => uint256[]) public pledgeBackings; // pledgeId => backingIds
+    mapping(address => uint256[]) public userBackings;  // user => backingIds
     
     uint256 public pledgeCounter;
     uint256 public backingCounter;
@@ -129,6 +130,10 @@ contract SecurePledgeVault is SepoliaConfig {
         // Update pledge totals (public amounts)
         pledges[pledgeId].currentAmount += msg.value;  // Use actual ETH amount
         pledges[pledgeId].backerCount += 1;
+        
+        // Update mappings
+        pledgeBackings[pledgeId].push(backingId);
+        userBackings[msg.sender].push(backingId);
         
         emit PledgeBacked(backingId, pledgeId, msg.sender, msg.value);
         return backingId;
@@ -277,6 +282,10 @@ contract SecurePledgeVault is SepoliaConfig {
     
     function getPledgeVaultBalance(uint256 pledgeId) public view returns (uint256) {
         return pledgeVaults[pledgeId];
+    }
+    
+    function getUserBackings(address user) public view returns (uint256[] memory) {
+        return userBackings[user];
     }
     
     function getTotalVaultBalance() public view returns (uint256) {

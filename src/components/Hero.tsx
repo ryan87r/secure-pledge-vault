@@ -62,9 +62,9 @@ const Hero = () => {
             <div className="bg-card/10 backdrop-blur-sm rounded-lg p-6 border border-primary/20">
               <DollarSign className="h-8 w-8 text-green-500 mx-auto mb-2" />
               <div className="text-2xl font-bold text-foreground">
-                {isConnected ? `$${(pledgeData.reduce((sum, pledge) => sum + pledge.currentAmount, 0) / 1e18).toLocaleString(undefined, { maximumFractionDigits: 2 })}` : "Connect Wallet"}
+                {isConnected ? `$${((pledgeData.reduce((sum, pledge) => sum + pledge.currentAmount, 0) / 1e18) * 4000).toLocaleString(undefined, { maximumFractionDigits: 0 })}` : "Connect Wallet"}
               </div>
-              <div className="text-sm text-muted-foreground">Total Raised (FHE Encrypted)</div>
+              <div className="text-sm text-muted-foreground">Total Raised (USD @ $4000/ETH)</div>
             </div>
             <div className="bg-card/10 backdrop-blur-sm rounded-lg p-6 border border-primary/20">
               <Lock className="h-8 w-8 text-primary mx-auto mb-2" />
