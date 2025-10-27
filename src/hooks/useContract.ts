@@ -142,7 +142,9 @@ export const useSecurePledgeVaultContract = () => {
 
       try {
         const input = instance.createEncryptedInput(CONTRACT_ADDRESS, address);
-        input.add32(BigInt(amount));
+        // Convert ETH to wei (multiply by 10^18)
+        const amountInWei = Math.floor(amount * 1e18);
+        input.add32(BigInt(amountInWei));
         const encryptedInput = await input.encrypt();
 
         const result = await backPledge({
@@ -150,7 +152,7 @@ export const useSecurePledgeVaultContract = () => {
           abi: SECURE_PLEDGE_VAULT_ABI,
           functionName: 'backPledge',
           args: [BigInt(pledgeId), encryptedInput.handles[0], encryptedInput.inputProof],
-          value: BigInt(1000000000000000000), // 1 ETH in wei
+          value: BigInt(amountInWei), // Send actual amount in wei
         });
 
         return result;

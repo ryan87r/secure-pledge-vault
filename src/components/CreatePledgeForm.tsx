@@ -119,7 +119,7 @@ const CreatePledgeForm = () => {
               onChange={(e) => setFormData({ ...formData, targetAmount: e.target.value })}
               placeholder="10.0"
               step="0.01"
-              min="0.001"
+              min="0.000000000000000001"
               required
             />
             <p className="text-xs text-muted-foreground mt-1">

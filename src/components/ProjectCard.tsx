@@ -167,7 +167,7 @@ const ProjectCard = ({
                 onChange={(e) => setBackingAmount(e.target.value)}
                 placeholder="0.1"
                 step="0.01"
-                min="0.001"
+                min="0.000000000000000001"
                 className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
