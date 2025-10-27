@@ -12,7 +12,7 @@ import { CONTRACT_ADDRESS } from "@/lib/constants";
 
 const CreatePledgeForm = () => {
   const { address } = useAccount();
-  const { instance, signerPromise } = useSecurePledgeVaultContract();
+  const { instance, signer, createPledge } = useSecurePledgeVaultContract();
   const [isCreating, setIsCreating] = useState(false);
   const [formData, setFormData] = useState({
     title: "",
@@ -23,27 +23,19 @@ const CreatePledgeForm = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!instance || !address || !signerPromise) {
-      alert('Missing wallet or encryption service');
+    if (!address) {
+      alert('Please connect your wallet');
       return;
     }
 
     setIsCreating(true);
     try {
-      const input = instance.createEncryptedInput(CONTRACT_ADDRESS, address);
-      input.add32(BigInt(Math.floor(parseFloat(formData.targetAmount) * 1e18)));
-      const encryptedInput = await input.encrypt();
-
-      const signer = await signerPromise;
-      const contract = new Contract(CONTRACT_ADDRESS, SECURE_PLEDGE_VAULT_ABI, signer);
-      const tx = await contract.createPledge(
+      await createPledge(
         formData.title,
         formData.description,
-        encryptedInput.handles[0],
-        BigInt(parseInt(formData.duration) * 24 * 60 * 60), // Convert days to seconds
-        encryptedInput.inputProof
+        parseFloat(formData.targetAmount),
+        parseInt(formData.duration)
       );
-      await tx.wait();
       
       alert('Pledge created successfully!');
       setFormData({ title: "", description: "", targetAmount: "", duration: "30" });
@@ -153,9 +145,9 @@ const CreatePledgeForm = () => {
           <Button
             type="submit"
             className="w-full"
-            disabled={isCreating || !instance || !signerPromise}
+            disabled={isCreating}
           >
-            {isCreating ? "Creating..." : !instance ? "Initializing..." : "Create Pledge"}
+            {isCreating ? "Creating..." : "Create Pledge"}
           </Button>
         </form>
       </CardContent>

@@ -45,7 +45,7 @@ const ProjectCard = ({
   vaultBalance = 0
 }: ProjectCardProps) => {
   const { address } = useAccount();
-  const { instance, signerPromise } = useSecurePledgeVaultContract();
+  const { instance, signer, backPledge } = useSecurePledgeVaultContract();
   const [isBacking, setIsBacking] = useState(false);
   const [backingAmount, setBackingAmount] = useState("0.1");
 
@@ -53,8 +53,8 @@ const ProjectCard = ({
   const daysLeft = Math.max(0, Math.ceil((endTime - Date.now()) / (1000 * 60 * 60 * 24)));
 
   const handleBackPledge = async () => {
-    if (!instance || !address || !signerPromise) {
-      alert('Missing wallet or encryption service');
+    if (!address) {
+      alert('Please connect your wallet');
       return;
     }
     if (!backingAmount || parseFloat(backingAmount) <= 0) {
@@ -63,18 +63,7 @@ const ProjectCard = ({
     }
     setIsBacking(true);
     try {
-      const input = instance.createEncryptedInput(CONTRACT_ADDRESS, address);
-      input.add32(BigInt(Math.floor(parseFloat(backingAmount) * 1e18)));
-      const encryptedInput = await input.encrypt();
-
-      const signer = await signerPromise;
-      const contract = new Contract(CONTRACT_ADDRESS, SECURE_PLEDGE_VAULT_ABI, signer);
-      const tx = await contract.backPledge(
-        id,
-        encryptedInput.handles[0],
-        encryptedInput.inputProof
-      );
-      await tx.wait();
+      await backPledge(id || 0, parseFloat(backingAmount));
       alert('Pledge backed successfully!');
       setBackingAmount("0.1");
       // Refresh pledge data
@@ -188,9 +177,9 @@ const ProjectCard = ({
             variant="default" 
             className="w-full"
             onClick={handleBackPledge}
-            disabled={!isActive || isBacking || daysLeft <= 0 || !address || !instance || !signerPromise}
+            disabled={!isActive || isBacking || daysLeft <= 0 || !address}
           >
-            {isBacking ? "Backing..." : daysLeft <= 0 ? "Ended" : !address ? "Connect Wallet" : !instance ? "Initializing..." : "Back This Pledge"}
+            {isBacking ? "Backing..." : daysLeft <= 0 ? "Ended" : !address ? "Connect Wallet" : "Back This Pledge"}
           </Button>
         </div>
       </div>
