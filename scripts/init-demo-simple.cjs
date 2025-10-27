@@ -1,5 +1,5 @@
 const { ethers } = require('ethers');
-const { createInstance, initSDK, SepoliaConfig } = require('@zama-fhe/relayer-sdk/bundle');
+require('dotenv').config();
 
 // Contract ABI (updated for new interface)
 const CONTRACT_ABI = [
@@ -13,7 +13,7 @@ const DEMO_PLEDGES = [
   {
     title: "VR Headset for Education",
     description: "Revolutionary VR headset designed specifically for educational environments. Features eye-tracking technology, comfortable design for extended use, and comprehensive educational content library.",
-    targetAmount: 50000, // 50 ETH in wei
+    targetAmount: 50, // 50 ETH
     duration: 30, // 30 days
     category: "Technology",
     image: "/project-vr-headset.jpg"
@@ -21,7 +21,7 @@ const DEMO_PLEDGES = [
   {
     title: "Smart Home Security System",
     description: "Advanced smart home security system with AI-powered threat detection, real-time monitoring, and seamless integration with existing home automation systems.",
-    targetAmount: 75000, // 75 ETH in wei
+    targetAmount: 75, // 75 ETH
     duration: 45, // 45 days
     category: "Security",
     image: "/project-smart-home.jpg"
@@ -29,7 +29,7 @@ const DEMO_PLEDGES = [
   {
     title: "Solar Technology Innovation",
     description: "Next-generation solar panel technology with improved efficiency and durability. Includes smart energy management system and IoT integration for optimal performance monitoring.",
-    targetAmount: 100000, // 100 ETH in wei
+    targetAmount: 100, // 100 ETH
     duration: 60, // 60 days
     category: "Environment",
     image: "/project-solar-tech.jpg"
@@ -38,29 +38,21 @@ const DEMO_PLEDGES = [
 
 async function initializeDemoData() {
   try {
-    console.log('Initializing FHE SDK...');
-    await initSDK();
+    console.log('🚀 Starting demo data initialization...');
     
-    const instance = await createInstance(SepoliaConfig);
-    console.log('FHE SDK initialized successfully');
-    
-    // Get contract address from environment or deployment info
-    let contractAddress = process.env.VITE_CONTRACT_ADDRESS;
-    
-    if (!contractAddress || contractAddress === "0x0000000000000000000000000000000000000000") {
-      // Try to read from deployment-info.json
-      try {
-        const deploymentInfo = require('../deployment-info.json');
-        contractAddress = deploymentInfo.contractAddress;
-        console.log('📄 Using contract address from deployment-info.json:', contractAddress);
-      } catch (error) {
-        console.log('❌ No contract address found. Please deploy the contract first.');
-        console.log('Run: npx hardhat run scripts/deploy.cjs --network sepolia');
-        return;
-      }
+    // Get contract address from deployment info
+    let contractAddress;
+    try {
+      const deploymentInfo = require('../deployment-info.json');
+      contractAddress = deploymentInfo.contractAddress;
+      console.log('📄 Using contract address:', contractAddress);
+    } catch (error) {
+      console.log('❌ No contract address found. Please deploy the contract first.');
+      console.log('Run: npm run deploy');
+      return;
     }
     
-    // Connect to contract (you'll need to provide a signer)
+    // Connect to contract
     const provider = new ethers.JsonRpcProvider(process.env.SEPOLIA_RPC_URL || "https://1rpc.io/sepolia");
     const privateKey = process.env.PRIVATE_KEY;
     
@@ -71,53 +63,38 @@ async function initializeDemoData() {
     const wallet = new ethers.Wallet(privateKey, provider);
     const contract = new ethers.Contract(contractAddress, CONTRACT_ABI, wallet);
     
-    console.log('Creating demo pledges...');
+    console.log('👤 Using wallet:', wallet.address);
+    console.log('💰 Wallet balance:', ethers.formatEther(await provider.getBalance(wallet.address)), 'ETH');
+    
+    console.log('📝 Creating demo pledges...');
     
     for (let i = 0; i < DEMO_PLEDGES.length; i++) {
       const pledge = DEMO_PLEDGES[i];
-      console.log(`Creating pledge ${i + 1}: ${pledge.title}`);
+      console.log(`\n📋 Creating pledge ${i + 1}: ${pledge.title}`);
       
       try {
         // Create pledge with public target amount (no FHE encryption needed)
         const tx = await contract.createPledge(
           pledge.title,
           pledge.description,
-          BigInt(pledge.targetAmount * 1e18), // Convert to wei, no encryption
+          ethers.parseEther(pledge.targetAmount.toString()), // Convert to wei
           BigInt(pledge.duration * 24 * 60 * 60) // Convert days to seconds
         );
         
-        await tx.wait();
-        console.log(`✅ Pledge ${i + 1} created successfully: ${tx.hash}`);
-        
-        // Add some demo backings
-        if (i === 0) { // Only add backings to first pledge for demo
-          console.log('Adding demo backings...');
-          
-          const backingAmounts = [5000, 10000, 15000]; // 5, 10, 15 ETH in wei
-          
-          for (let j = 0; j < backingAmounts.length; j++) {
-            const backingInput = instance.createEncryptedInput(contractAddress, wallet.address);
-            backingInput.add32(BigInt(backingAmounts[j] * 1e18));
-            const backingEncryptedInput = await backingInput.encrypt();
-            
-            const backingTx = await contract.backPledge(
-              i, // pledgeId
-              backingEncryptedInput.handles[0],
-              backingEncryptedInput.inputProof,
-              { value: ethers.parseEther(backingAmounts[j].toString()) }
-            );
-            
-            await backingTx.wait();
-            console.log(`✅ Backing ${j + 1} added: ${backingTx.hash}`);
-          }
-        }
+        console.log(`⏳ Transaction submitted: ${tx.hash}`);
+        const receipt = await tx.wait();
+        console.log(`✅ Pledge ${i + 1} created successfully!`);
+        console.log(`   Gas used: ${receipt.gasUsed.toString()}`);
         
       } catch (error) {
         console.error(`❌ Error creating pledge ${i + 1}:`, error.message);
       }
     }
     
-    console.log('🎉 Demo data initialization completed!');
+    console.log('\n🎉 Demo data initialization completed!');
+    console.log('📊 Created', DEMO_PLEDGES.length, 'demo pledges');
+    console.log('🌐 Contract address:', contractAddress);
+    console.log('🔗 View on Etherscan: https://sepolia.etherscan.io/address/' + contractAddress);
     
   } catch (error) {
     console.error('❌ Initialization failed:', error);

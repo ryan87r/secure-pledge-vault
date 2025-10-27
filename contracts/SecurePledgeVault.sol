@@ -14,8 +14,8 @@ contract SecurePledgeVault is SepoliaConfig {
     
     struct Pledge {
         uint256 pledgeId;
-        externalEuint32 targetAmount;
-        externalEuint32 currentAmount;
+        uint256 targetAmount;        // Public target amount, not encrypted
+        uint256 currentAmount;       // Public current amount, not encrypted
         uint32 backerCount;
         bool isActive;
         bool isVerified;
@@ -28,15 +28,15 @@ contract SecurePledgeVault is SepoliaConfig {
     
     struct Backing {
         uint256 backingId;
-        externalEuint32 amount;
+        euint32 amount;
         address backer;
         uint256 timestamp;
     }
     
     struct ImpactReport {
         uint256 reportId;
-        uint32 beneficiariesReached;
-        externalEuint32 fundsUtilized;
+        uint32 beneficiariesReached;  // Public beneficiary count
+        euint32 fundsUtilized;        // Encrypted funds utilized amount
         bool isVerified;
         string reportHash;
         address reporter;
@@ -46,7 +46,7 @@ contract SecurePledgeVault is SepoliaConfig {
     mapping(uint256 => Pledge) public pledges;
     mapping(uint256 => Backing) public backings;
     mapping(uint256 => ImpactReport) public impactReports;
-    mapping(address => externalEuint32) public userReputation;
+    mapping(address => euint32) public userReputation;
     mapping(uint256 => uint256[]) public pledgeBackings; // pledgeId => backingIds
     
     uint256 public pledgeCounter;
@@ -57,7 +57,7 @@ contract SecurePledgeVault is SepoliaConfig {
     address public verifier;
     
     event PledgeCreated(uint256 indexed pledgeId, address indexed pledger, string title);
-    event PledgeBacked(uint256 indexed backingId, uint256 indexed pledgeId, address indexed backer, uint32 amount);
+    event PledgeBacked(uint256 indexed backingId, uint256 indexed pledgeId, address indexed backer, uint256 amount);
     event ImpactReported(uint256 indexed reportId, uint256 indexed pledgeId, address indexed reporter);
     event PledgeVerified(uint256 indexed pledgeId, bool isVerified);
     event ReputationUpdated(address indexed user, uint32 reputation);
@@ -71,9 +71,8 @@ contract SecurePledgeVault is SepoliaConfig {
     function createPledge(
         string memory _title,
         string memory _description,
-        externalEuint32 _targetAmount,
-        uint256 _duration,
-        bytes calldata inputProof
+        uint256 _targetAmount,        // Public target amount, not encrypted
+        uint256 _duration
     ) public returns (uint256) {
         require(bytes(_title).length > 0, "Pledge title cannot be empty");
         require(_duration > 0, "Duration must be positive");
@@ -82,8 +81,8 @@ contract SecurePledgeVault is SepoliaConfig {
         
         pledges[pledgeId] = Pledge({
             pledgeId: pledgeId,
-            targetAmount: _targetAmount,
-            currentAmount: externalEuint32(0), // Will be updated when backers contribute
+            targetAmount: _targetAmount,        // Use public amount directly
+            currentAmount: 0,                  // Initialize to 0
             backerCount: 0,
             isActive: true,
             isVerified: false,
@@ -94,22 +93,13 @@ contract SecurePledgeVault is SepoliaConfig {
             endTime: block.timestamp + _duration
         });
         
-        // Set ACL permissions for encrypted data
-        FHE.allowThis(pledges[pledgeId].targetAmount);
-        FHE.allowThis(pledges[pledgeId].currentAmount);
-        FHE.allow(pledges[pledgeId].targetAmount, msg.sender);
-        FHE.allow(pledges[pledgeId].currentAmount, msg.sender);
-        // Allow anyone to decrypt for transparency (can be restricted in production)
-        FHE.allow(pledges[pledgeId].targetAmount, address(0));
-        FHE.allow(pledges[pledgeId].currentAmount, address(0));
-        
         emit PledgeCreated(pledgeId, msg.sender, _title);
         return pledgeId;
     }
     
     function backPledge(
         uint256 pledgeId,
-        externalEuint32 amount,
+        externalEuint32 amount,      // Backing amount needs encryption
         bytes calldata inputProof
     ) public payable returns (uint256) {
         require(pledges[pledgeId].pledger != address(0), "Pledge does not exist");
@@ -121,13 +111,12 @@ contract SecurePledgeVault is SepoliaConfig {
         
         backings[backingId] = Backing({
             backingId: backingId,
-            amount: amount,
+            amount: FHE.fromExternal(amount, inputProof),
             backer: msg.sender,
             timestamp: block.timestamp
         });
         
         // Set ACL permissions for backing amount
-        FHE.allowThis(backings[backingId].amount);
         FHE.allow(backings[backingId].amount, msg.sender);
         FHE.allow(backings[backingId].amount, pledges[pledgeId].pledger);
         // Allow anyone to decrypt for transparency (can be restricted in production)
@@ -137,10 +126,8 @@ contract SecurePledgeVault is SepoliaConfig {
         pledgeVaults[pledgeId] += msg.value;
         totalVaultBalance += msg.value;
         
-        // Track backing for this pledge
-        pledgeBackings[pledgeId].push(backingId);
-        
-        // Update pledge backer count (unencrypted)
+        // Update pledge totals (public amounts)
+        pledges[pledgeId].currentAmount += msg.value;  // Use actual ETH amount
         pledges[pledgeId].backerCount += 1;
         
         emit PledgeBacked(backingId, pledgeId, msg.sender, msg.value);
@@ -162,8 +149,8 @@ contract SecurePledgeVault is SepoliaConfig {
         
         impactReports[reportId] = ImpactReport({
             reportId: reportId,
-            beneficiariesReached: beneficiariesReached,
-            fundsUtilized: fundsUtilized,
+            beneficiariesReached: beneficiariesReached,  // Public count
+            fundsUtilized: FHE.fromExternal(fundsUtilized, inputProof),  // Encrypted amount
             isVerified: false,
             reportHash: reportHash,
             reporter: msg.sender,
@@ -171,7 +158,6 @@ contract SecurePledgeVault is SepoliaConfig {
         });
         
         // Set ACL permissions for impact report data
-        FHE.allowThis(impactReports[reportId].fundsUtilized);
         FHE.allow(impactReports[reportId].fundsUtilized, msg.sender);
         FHE.allow(impactReports[reportId].fundsUtilized, pledges[pledgeId].pledger);
         // Allow anyone to decrypt for transparency (can be restricted in production)
@@ -189,14 +175,13 @@ contract SecurePledgeVault is SepoliaConfig {
         emit PledgeVerified(pledgeId, isVerified);
     }
     
-    function updateReputation(address user, externalEuint32 reputation) public {
+    function updateReputation(address user, externalEuint32 reputation, bytes calldata inputProof) public {
         require(msg.sender == verifier, "Only verifier can update reputation");
         require(user != address(0), "Invalid user address");
         
-        userReputation[user] = reputation;
+        userReputation[user] = FHE.fromExternal(reputation, inputProof);
         
         // Set ACL permissions for user reputation
-        FHE.allowThis(userReputation[user]);
         FHE.allow(userReputation[user], user);
         FHE.allow(userReputation[user], msg.sender);
         // Allow anyone to decrypt for transparency (can be restricted in production)
@@ -207,8 +192,8 @@ contract SecurePledgeVault is SepoliaConfig {
     function getPledgeInfo(uint256 pledgeId) public view returns (
         string memory title,
         string memory description,
-        externalEuint32 targetAmount,
-        externalEuint32 currentAmount,
+        uint256 targetAmount,
+        uint256 currentAmount,
         uint32 backerCount,
         bool isActive,
         bool isVerified,
@@ -232,7 +217,7 @@ contract SecurePledgeVault is SepoliaConfig {
     }
     
     function getBackingInfo(uint256 backingId) public view returns (
-        externalEuint32 amount,
+        euint32 amount,
         address backer,
         uint256 timestamp
     ) {
@@ -246,7 +231,7 @@ contract SecurePledgeVault is SepoliaConfig {
     
     function getImpactReportInfo(uint256 reportId) public view returns (
         uint32 beneficiariesReached,
-        externalEuint32 fundsUtilized,
+        euint32 fundsUtilized,
         bool isVerified,
         string memory reportHash,
         address reporter,
@@ -263,7 +248,7 @@ contract SecurePledgeVault is SepoliaConfig {
         );
     }
     
-    function getUserReputation(address user) public view returns (externalEuint32) {
+    function getUserReputation(address user) public view returns (euint32) {
         return userReputation[user];
     }
     
@@ -315,9 +300,4 @@ contract SecurePledgeVault is SepoliaConfig {
     
     // Fallback function to receive ETH
     receive() external payable {}
-    
-    // Function to get contract balance
-    function getContractBalance() public view returns (uint256) {
-        return address(this).balance;
-    }
 }

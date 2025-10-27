@@ -1,13 +1,10 @@
 import { useReadContract, useWriteContract, useAccount } from 'wagmi';
 import { SECURE_PLEDGE_VAULT_ABI } from '@/lib/contract-abi';
-import { contractAddresses } from '@/lib/wallet-config';
+import { CONTRACT_ADDRESS } from '@/lib/constants';
 import { useState, useEffect } from 'react';
 import { useZamaInstance } from './useZamaInstance';
 import { useEthersSigner } from './useEthersSigner';
 import { Contract } from 'ethers';
-
-// Contract address - will be updated after deployment
-const CONTRACT_ADDRESS = contractAddresses.securePledgeVault || '0x...';
 
 export const useSecurePledgeVaultContract = () => {
   const { address, isConnected } = useAccount();
@@ -95,40 +92,30 @@ export const useSecurePledgeVaultContract = () => {
     fheLoading,
     fheError,
     isInitialized,
-    createPledge: async (title: string, description: string, targetAmount: number, duration: number) => {
-      if (!instance || !address || !signer) {
-        throw new Error('Missing wallet or encryption service');
-      }
-      
-      try {
-        console.log('🚀 Starting FHE pledge creation process...');
-        console.log('📊 Input parameters:', { title, description, targetAmount, duration });
-        
-        console.log('🔄 Step 1: Creating encrypted input...');
-        const input = instance.createEncryptedInput(CONTRACT_ADDRESS, address);
-        
-        console.log('🔄 Step 2: Adding target amount to encrypted input...');
-        input.add32(BigInt(targetAmount));
-        
-        console.log('🔄 Step 3: Encrypting data...');
-        const encryptedInput = await input.encrypt();
-        console.log('✅ Encryption completed, handles count:', encryptedInput.handles.length);
-        
-        console.log('🔄 Step 4: Calling contract...');
-        const result = await createPledge({
-          address: CONTRACT_ADDRESS as `0x${string}`,
-          abi: SECURE_PLEDGE_VAULT_ABI,
-          functionName: 'createPledge',
-          args: [title, description, encryptedInput.handles[0], BigInt(duration), encryptedInput.inputProof],
-        });
-        
-        console.log('✅ Pledge creation successful!');
-        return result;
-      } catch (err) {
-        console.error('❌ Error creating pledge:', err);
-        throw err;
-      }
-    },
+        createPledge: async (title: string, description: string, targetAmount: number, duration: number) => {
+          if (!address) {
+            throw new Error('Missing wallet connection');
+          }
+
+          try {
+            console.log('🚀 Starting pledge creation process...');
+            console.log('📊 Input parameters:', { title, description, targetAmount, duration });
+
+            console.log('🔄 Step 1: Calling contract...');
+            const result = await createPledge({
+              address: CONTRACT_ADDRESS as `0x${string}`,
+              abi: SECURE_PLEDGE_VAULT_ABI,
+              functionName: 'createPledge',
+              args: [title, description, BigInt(targetAmount), BigInt(duration)],
+            });
+
+            console.log('✅ Pledge creation successful!');
+            return result;
+          } catch (err) {
+            console.error('❌ Error creating pledge:', err);
+            throw err;
+          }
+        },
     backPledge: async (pledgeId: number, amount: number) => {
       if (!instance || !address || !signer) {
         throw new Error('Missing wallet or encryption service');

@@ -117,19 +117,14 @@ export const SECURE_PLEDGE_VAULT_ABI = [
         "type": "string"
       },
       {
-        "internalType": "bytes32",
+        "internalType": "uint256",
         "name": "_targetAmount",
-        "type": "bytes32"
+        "type": "uint256"
       },
       {
         "internalType": "uint256",
         "name": "_duration",
         "type": "uint256"
-      },
-      {
-        "internalType": "bytes",
-        "name": "inputProof",
-        "type": "bytes"
       }
     ],
     "name": "createPledge",
