@@ -74,7 +74,6 @@
     "@fhevm/hardhat-plugin": "^0.1.0",
     "@fhevm/mock-utils": "^0.1.0",
     "@nomicfoundation/hardhat-chai-matchers": "^1.0.6",
-    "@nomicfoundation/hardhat-ethers": "^3.0.0",
     "@nomicfoundation/hardhat-network-helpers": "^1.0.8",
     "@nomiclabs/hardhat-ethers": "^2.0.0",
     "@nomiclabs/hardhat-etherscan": "^3.0.0",
