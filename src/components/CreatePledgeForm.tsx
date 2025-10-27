@@ -120,6 +120,7 @@ const CreatePledgeForm = () => {
               placeholder="10.0"
               step="0.01"
               min="0.000000000000000001"
+              max="4294.967295"
               required
             />
             <p className="text-xs text-muted-foreground mt-1">

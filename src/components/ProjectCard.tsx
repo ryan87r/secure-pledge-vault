@@ -168,6 +168,7 @@ const ProjectCard = ({
                 placeholder="0.1"
                 step="0.01"
                 min="0.000000000000000001"
+                max="4294.967295"
                 className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>

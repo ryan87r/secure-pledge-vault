@@ -142,10 +142,17 @@ export const useSecurePledgeVaultContract = () => {
 
       try {
         const input = instance.createEncryptedInput(CONTRACT_ADDRESS, address);
-        // Convert ETH to wei (multiply by 10^18)
-        const amountInWei = Math.floor(amount * 1e18);
-        input.add32(BigInt(amountInWei));
+        // For FHE encryption, use ETH amount (not wei) to stay within 32-bit limit
+        // Convert to smallest unit that fits in 32-bit: multiply by 10^6 (micro-ETH)
+        const amountInMicroETH = Math.floor(amount * 1e6);
+        if (amountInMicroETH > 4294967295) {
+          throw new Error('Amount too large for FHE encryption. Maximum: 4294.967295 ETH');
+        }
+        input.add32(BigInt(amountInMicroETH));
         const encryptedInput = await input.encrypt();
+
+        // For actual ETH transfer, convert to wei
+        const amountInWei = Math.floor(amount * 1e18);
 
         const result = await backPledge({
           address: CONTRACT_ADDRESS as `0x${string}`,
