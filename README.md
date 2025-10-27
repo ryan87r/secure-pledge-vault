@@ -8,6 +8,14 @@ Welcome to the world's first **Fully Homomorphic Encryption (FHE)** powered crow
 ![Privacy First](https://img.shields.io/badge/Privacy-First-ff6b6b?style=for-the-badge&logo=lock&logoColor=white)
 ![Web3 Ready](https://img.shields.io/badge/Web3-Ready-8b5cf6?style=for-the-badge&logo=ethereum&logoColor=white)
 
+## 🎥 Demo Video
+
+Watch our comprehensive demo showcasing the complete FHE-encrypted crowdfunding platform:
+
+[![Secure Pledge Vault Demo](https://img.shields.io/badge/🎥-Watch_Demo-ff6b6b?style=for-the-badge&logo=play&logoColor=white)](./secure-pledge-vault.mov)
+
+**📹 [Download Demo Video](./secure-pledge-vault.mov)** (19MB)
+
 ## 🌟 Project Status: COMPLETED ✅
 
 This project has been successfully implemented with full FHE encryption capabilities:
@@ -30,6 +38,23 @@ This project has been successfully implemented with full FHE encryption capabili
 │   (React/Vite)  │◄──►│   (Encryption)   │◄──►│   (Ethereum)    │
 └─────────────────┘    └──────────────────┘    └─────────────────┘
 ```
+
+### 🔄 Data Flow Architecture
+
+```
+User Input → FHE Encryption → Smart Contract → Encrypted Storage
+     ↓              ↓              ↓              ↓
+  Frontend    →  Zama SDK   →  FHEVM Chain  →  ACL Permissions
+     ↓              ↓              ↓              ↓
+  Decryption  ←  Zama SDK   ←  FHEVM Chain  ←  User Access
+```
+
+### 🛡️ Security Layers
+
+1. **Frontend Layer**: React + TypeScript + FHE SDK
+2. **Encryption Layer**: Zama FHE SDK + Cryptographic Proofs  
+3. **Blockchain Layer**: FHEVM + Smart Contract + ACL
+4. **Storage Layer**: Encrypted On-Chain Data + Vault System
 
 ## 🛠️ Tech Stack
 
@@ -98,7 +123,7 @@ VITE_WALLET_CONNECT_PROJECT_ID=e08e99d213c331aa0fd00f625de06e66
 VITE_RPC_URL=https://1rpc.io/sepolia
 
 # Contract Configuration
-VITE_CONTRACT_ADDRESS=0x0000000000000000000000000000000000000000
+VITE_CONTRACT_ADDRESS=0x1cAED6376D177E28541246839015692c81aE5325
 
 # Pinata IPFS Configuration
 VITE_PINATA_API_KEY=your_pinata_api_key_here
@@ -118,70 +143,186 @@ npm run lint         # Run ESLint
 
 Our `SecurePledgeVault.sol` contract implements:
 
-- **🔐 FHE-Encrypted Storage**: All pledge amounts stored encrypted using `externalEuint32`
+- **🔐 FHE-Encrypted Storage**: All sensitive data (backing amounts, funds utilized) stored encrypted using `euint32`
+- **💰 Vault System**: Secure fund management with actual ETH storage
 - **👤 Reputation System**: Encrypted user reputation tracking
 - **📊 Impact Reporting**: Privacy-preserving project metrics
-- **💰 Secure Withdrawals**: Milestone-based fund release
-- **🛡️ Access Control**: Role-based permissions
-- **🔒 Complete Privacy**: No sensitive data exposed on-chain
+- **🛡️ Access Control**: Role-based permissions with ACL
+- **🔒 Complete Privacy**: Sensitive financial data never exposed on-chain
 
-### Key FHE Functions:
+### 📋 Contract Address
+
+**Deployed Contract**: `0x1cAED6376D177E28541246839015692c81aE5325` (Sepolia Testnet)
+
+### 🔧 Key Contract Structures
 
 ```solidity
-// Create pledge with encrypted target amount
+struct Pledge {
+    uint256 pledgeId;
+    uint256 targetAmount;        // Public target amount
+    uint256 currentAmount;        // Public current amount  
+    uint32 backerCount;
+    bool isActive;
+    bool isVerified;
+    string title;
+    string description;
+    address pledger;
+    uint256 startTime;
+    uint256 endTime;
+}
+
+struct Backing {
+    uint256 backingId;
+    euint32 amount;              // FHE-encrypted backing amount
+    address backer;
+    uint256 timestamp;
+}
+
+struct ImpactReport {
+    uint256 reportId;
+    uint32 beneficiariesReached;  // Public beneficiary count
+    euint32 fundsUtilized;        // FHE-encrypted funds utilized
+    bool isVerified;
+    string reportHash;
+    address reporter;
+    uint256 timestamp;
+}
+```
+
+### 🔐 Key FHE Functions:
+
+```solidity
+// Create pledge with public target amount
 function createPledge(
     string memory _title,
     string memory _description,
-    externalEuint32 _targetAmount,
-    uint256 _duration,
-    bytes calldata inputProof
+    uint256 _targetAmount,        // Public amount for transparency
+    uint256 _duration
 ) public returns (uint256)
 
 // Back pledge with encrypted amount
 function backPledge(
     uint256 pledgeId,
-    externalEuint32 amount,
+    externalEuint32 amount,       // FHE-encrypted amount
     bytes calldata inputProof
 ) public payable returns (uint256)
 
 // Submit impact report with encrypted metrics
 function submitImpactReport(
     uint256 pledgeId,
-    externalEuint32 beneficiariesReached,
-    externalEuint32 fundsUtilized,
+    uint32 beneficiariesReached,  // Public count
+    externalEuint32 fundsUtilized, // FHE-encrypted amount
     string memory reportHash,
     bytes calldata inputProof
 ) public returns (uint256)
+
+// Get user's backing records
+function getUserBackings(address user) 
+    public view returns (uint256[] memory)
+
+// Decrypt backing amount (with ACL)
+function getBackingInfo(uint256 backingId)
+    public view returns (
+        uint256 backingId,
+        bytes32 amount,           // Encrypted amount
+        address backer,
+        uint256 timestamp,
+        uint256 pledgeId
+    )
 ```
 
 ## 🔐 FHE Implementation Details
 
-### Frontend Encryption Flow:
+### 🔄 Complete Data Encryption/Decryption Flow
+
+#### 1. **Frontend Encryption Process**
 
 ```typescript
 // Initialize FHE instance
 const { instance } = useZamaInstance();
 
-// Create encrypted input
-const input = instance.createEncryptedInput(CONTRACT_ADDRESS, address);
-input.add32(BigInt(targetAmount));
+// Create encrypted input for backing amount
+const input = instance.createEncryptedInput(CONTRACT_ADDRESS, userAddress);
+input.add32(BigInt(backingAmount)); // Add amount to encrypt
 
-// Encrypt and get handles
+// Encrypt and get handles + proof
 const encryptedInput = await input.encrypt();
-const handles = encryptedInput.handles;
-const inputProof = encryptedInput.inputProof;
+const handles = encryptedInput.handles;        // Encrypted data handles
+const inputProof = encryptedInput.inputProof; // Cryptographic proof
 
-// Submit to contract
-await contract.createPledge(title, description, handles[0], duration, inputProof);
+// Submit to contract with encrypted data
+await contract.backPledge(pledgeId, handles[0], inputProof, {
+    value: backingAmount // Actual ETH transfer
+});
 ```
 
-### Key Features:
+#### 2. **Contract-Side Encryption Handling**
 
-1. **🔒 Complete Data Privacy**: All financial amounts are encrypted with FHE
+```solidity
+function backPledge(
+    uint256 pledgeId,
+    externalEuint32 amount,       // External encrypted input
+    bytes calldata inputProof
+) public payable returns (uint256) {
+    // Convert external encrypted input to internal euint32
+    euint32 internalAmount = FHE.fromExternal(amount);
+    
+    // Set ACL permissions - only backer can decrypt
+    FHE.allowThis(internalAmount);
+    FHE.allow(internalAmount, msg.sender);
+    
+    // Store encrypted backing
+    uint256 backingId = nextBackingId++;
+    backings[backingId] = Backing({
+        backingId: backingId,
+        amount: internalAmount,    // Stored as euint32
+        backer: msg.sender,
+        timestamp: block.timestamp
+    });
+    
+    // Update vault with actual ETH
+    pledgeVaults[pledgeId] += msg.value;
+    
+    return backingId;
+}
+```
+
+#### 3. **Frontend Decryption Process**
+
+```typescript
+// Get encrypted backing data
+const backingInfo = await contract.getBackingInfo(backingId);
+
+// Decrypt the amount using FHE instance
+const decryptedAmount = await instance.decrypt(
+    backingInfo.amount,           // Encrypted bytes32
+    CONTRACT_ADDRESS,
+    userAddress
+);
+
+console.log(`Decrypted backing amount: ${decryptedAmount}`);
+```
+
+### 🛡️ Access Control List (ACL) Implementation
+
+The contract implements sophisticated ACL for encrypted data:
+
+```solidity
+// Set permissions for encrypted data
+FHE.allowThis(encryptedData);           // Contract can access
+FHE.allow(encryptedData, userAddress);  // Specific user can access
+FHE.allow(encryptedData, address(0));   // Public access
+```
+
+### 🔐 Key Security Features:
+
+1. **🔒 Complete Data Privacy**: All sensitive financial amounts are encrypted with FHE
 2. **🛡️ Zero-Knowledge Proofs**: Cryptographic proofs ensure data integrity
 3. **⚡ Real-time Encryption**: Data encrypted before blockchain submission
 4. **🎯 Selective Disclosure**: Choose when to reveal encrypted data
 5. **🔐 End-to-End Security**: Privacy maintained throughout entire workflow
+6. **💰 Vault Integration**: Actual ETH storage with encrypted metadata
+7. **👥 User-Specific Access**: Only authorized users can decrypt their data
 
 ## 🌍 Deployment
 
