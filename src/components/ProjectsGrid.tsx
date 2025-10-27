@@ -48,20 +48,20 @@ const ProjectsGrid = () => {
     if (isValidContractAddress && pledgeData && pledgeData.length > 0) {
       // Transform contract data to project format
       const transformedProjects = pledgeData.map((pledge: any, index: number) => ({
-        id: pledge.pledgeId || index,
+        id: pledge.id || pledge.pledgeId || index,
         title: pledge.title || `Pledge ${index + 1}`,
         description: pledge.description || "No description available",
         pledger: pledge.pledger || "Unknown",
         image: IMAGE_MAP[index] || "/project-placeholder.jpg",
         category: CATEGORY_MAP[index] || "General",
-        targetAmount: 0, // Will be decrypted from encrypted data
-        currentAmount: 0, // Will be decrypted from encrypted data
+        targetAmount: pledge.targetAmount || 0,
+        currentAmount: pledge.currentAmount || 0,
         backerCount: pledge.backerCount || 0,
-        isActive: pledge.isActive || false,
+        isActive: pledge.isActive !== undefined ? pledge.isActive : true,
         isVerified: pledge.isVerified || false,
         startTime: pledge.startTime || Date.now(),
         endTime: pledge.endTime || Date.now() + 86400000 * 30,
-        isEncrypted: true,
+        isEncrypted: false, // Show actual data for newly created pledges
         vaultBalance: pledge.vaultBalance || 0
       }));
       setProjects(transformedProjects);

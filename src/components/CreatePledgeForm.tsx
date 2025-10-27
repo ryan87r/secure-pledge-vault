@@ -12,7 +12,7 @@ import { CONTRACT_ADDRESS } from "@/lib/constants";
 
 const CreatePledgeForm = () => {
   const { address } = useAccount();
-  const { instance, signer, createPledge } = useSecurePledgeVaultContract();
+  const { instance, signer, createPledge, pledgeCounter } = useSecurePledgeVaultContract();
   const [isCreating, setIsCreating] = useState(false);
   const [formData, setFormData] = useState({
     title: "",
@@ -30,17 +30,23 @@ const CreatePledgeForm = () => {
 
     setIsCreating(true);
     try {
-      await createPledge(
+      console.log('Creating pledge with data:', formData);
+      const result = await createPledge(
         formData.title,
         formData.description,
         parseFloat(formData.targetAmount),
-        parseInt(formData.duration)
+        parseInt(formData.duration) * 24 * 60 * 60 // Convert days to seconds
       );
       
+      console.log('Pledge creation result:', result);
       alert('Pledge created successfully!');
       setFormData({ title: "", description: "", targetAmount: "", duration: "30" });
-      // Refresh page to show new pledge
-      window.location.reload();
+      
+      // Wait a moment for the transaction to be mined, then refresh data
+      setTimeout(() => {
+        console.log('Refreshing data after pledge creation...');
+        window.location.reload();
+      }, 2000);
     } catch (error) {
       console.error('Error creating pledge:', error);
       alert('Failed to create pledge. Please try again.');

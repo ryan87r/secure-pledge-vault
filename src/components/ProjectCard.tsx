@@ -137,6 +137,24 @@ const ProjectCard = ({
             )}
           </div>
           
+          {/* Time Remaining Display */}
+          <div className="space-y-2">
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-muted-foreground">
+                Time Remaining
+              </span>
+              <span className={`text-sm font-medium ${daysLeft <= 0 ? 'text-red-500' : daysLeft <= 3 ? 'text-orange-500' : 'text-green-500'}`}>
+                {daysLeft <= 0 ? 'Ended' : `${daysLeft} day${daysLeft === 1 ? '' : 's'} left`}
+              </span>
+            </div>
+            {daysLeft > 0 && (
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Clock className="h-3 w-3" />
+                <span>Ends on {new Date(endTime).toLocaleDateString()}</span>
+              </div>
+            )}
+          </div>
+          
           {/* Vault Balance Display */}
           <div className="space-y-2">
             <div className="flex justify-between items-center">

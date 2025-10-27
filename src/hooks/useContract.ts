@@ -50,8 +50,12 @@ export const useSecurePledgeVaultContract = () => {
   // Load pledge data from contract with proper dependency management
   useEffect(() => {
     const loadPledgeData = async () => {
-      if (!pledgeCounter || !isConnected || !isValidContractAddress || !contract) return;
+      if (!pledgeCounter || !isConnected || !isValidContractAddress || !contract) {
+        console.log('Skipping data load:', { pledgeCounter, isConnected, isValidContractAddress, hasContract: !!contract });
+        return;
+      }
 
+      console.log(`Loading ${Number(pledgeCounter)} pledges from contract...`);
       setLoading(true);
       try {
         const pledges = [];
@@ -59,7 +63,9 @@ export const useSecurePledgeVaultContract = () => {
 
         for (let i = 0; i < Math.min(totalPledges, 10); i++) {
           try {
+            console.log(`Loading pledge ${i}...`);
             const pledgeInfo = await contract.getPledgeInfo(i);
+            console.log(`Pledge ${i} data:`, pledgeInfo);
 
             pledges.push({
               id: i,
@@ -74,25 +80,15 @@ export const useSecurePledgeVaultContract = () => {
               startTime: Number(pledgeInfo.startTime) * 1000,
               endTime: Number(pledgeInfo.endTime) * 1000,
             });
+            console.log(`Successfully loaded pledge ${i}: ${pledgeInfo.title}`);
           } catch (error) {
             console.error(`Error loading pledge ${i}:`, error);
-            // Fallback to demo data if contract call fails
-            pledges.push({
-              id: i,
-              title: `Pledge ${i + 1}`,
-              description: `Description for pledge ${i + 1}`,
-              targetAmount: 1000,
-              currentAmount: Math.floor(Math.random() * 1000),
-              backerCount: Math.floor(Math.random() * 50),
-              isActive: true,
-              isVerified: Math.random() > 0.5,
-              pledger: address,
-              startTime: Date.now() - Math.random() * 86400000 * 30,
-              endTime: Date.now() + Math.random() * 86400000 * 30,
-            });
+            // Don't add fallback data, just skip this pledge
+            console.log(`Skipping pledge ${i} due to error`);
           }
         }
 
+        console.log(`Successfully loaded ${pledges.length} pledges`);
         setPledgeData(pledges);
       } catch (error) {
         console.error('Error loading pledge data:', error);
@@ -102,7 +98,7 @@ export const useSecurePledgeVaultContract = () => {
     };
 
     loadPledgeData();
-  }, [pledgeCounter, isConnected, isValidContractAddress]); // Removed contract from dependencies
+  }, [pledgeCounter, isConnected, isValidContractAddress, contract]); // Added contract back to dependencies
 
   return {
     pledgeData,
@@ -154,11 +150,22 @@ export const useSecurePledgeVaultContract = () => {
         // For actual ETH transfer, convert to wei
         const amountInWei = Math.floor(amount * 1e18);
 
+        console.log('Encrypted input handles:', encryptedInput.handles);
+        console.log('Encrypted input proof:', encryptedInput.inputProof);
+        
+        // Ensure handles and proof are properly formatted as hex strings
+        const handle = typeof encryptedInput.handles[0] === 'string' 
+          ? encryptedInput.handles[0] 
+          : `0x${encryptedInput.handles[0].toString(16)}`;
+        const proof = typeof encryptedInput.inputProof === 'string' 
+          ? encryptedInput.inputProof 
+          : `0x${encryptedInput.inputProof.toString(16)}`;
+
         const result = await backPledge({
           address: CONTRACT_ADDRESS as `0x${string}`,
           abi: SECURE_PLEDGE_VAULT_ABI,
           functionName: 'backPledge',
-          args: [BigInt(pledgeId), encryptedInput.handles[0], encryptedInput.inputProof],
+          args: [BigInt(pledgeId), handle, proof],
           value: BigInt(amountInWei), // Send actual amount in wei
         });
 
