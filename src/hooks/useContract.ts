@@ -164,18 +164,20 @@ export const useSecurePledgeVaultContract = () => {
         console.log('Encrypted input proof:', encryptedInput.inputProof);
         
         // Convert handles and proof to proper hex format (reference aidwell-connect)
-        const convertHex = (handle: any): string => {
-          if (typeof handle === 'string') {
-            return handle.startsWith('0x') ? handle : `0x${handle}`;
-          } else if (handle instanceof Uint8Array) {
-            return `0x${Array.from(handle).map(b => b.toString(16).padStart(2, '0')).join('')}`;
-          } else if (Array.isArray(handle)) {
-            return `0x${handle.map(b => b.toString(16).padStart(2, '0')).join('')}`;
+        const convertToBytes32 = (handle: Uint8Array): string => {
+          const hex = `0x${Array.from(handle)
+            .map(b => b.toString(16).padStart(2, '0'))
+            .join('')}`;
+          // Ensure exactly 32 bytes (66 characters including 0x)
+          if (hex.length < 66) {
+            return hex.padEnd(66, '0');
+          } else if (hex.length > 66) {
+            return hex.substring(0, 66);
           }
-          return `0x${handle.toString()}`;
+          return hex;
         };
 
-        const handle = convertHex(encryptedInput.handles[0]);
+        const handle = convertToBytes32(encryptedInput.handles[0]);
         const proof = `0x${Array.from(encryptedInput.inputProof as Uint8Array)
           .map(b => b.toString(16).padStart(2, '0')).join('')}`;
 
