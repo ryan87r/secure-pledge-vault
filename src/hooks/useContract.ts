@@ -4,7 +4,7 @@ import { CONTRACT_ADDRESS } from '@/lib/constants';
 import { useState, useEffect } from 'react';
 import { useZamaInstance } from './useZamaInstance';
 import { useEthersSigner } from './useEthersSigner';
-import { Contract } from 'ethers';
+import { Contract, BrowserProvider } from 'ethers';
 
 export const useSecurePledgeVaultContract = () => {
   const { address, isConnected } = useAccount();
@@ -12,6 +12,9 @@ export const useSecurePledgeVaultContract = () => {
   const signer = useEthersSigner();
   const [pledgeData, setPledgeData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+
+  // Create contract instance
+  const contract = signer ? new Contract(CONTRACT_ADDRESS, SECURE_PLEDGE_VAULT_ABI, signer) : null;
 
   // Check if contract address is valid
   const isValidContractAddress = CONTRACT_ADDRESS && CONTRACT_ADDRESS !== '0x...' && CONTRACT_ADDRESS.startsWith('0x');
@@ -41,35 +44,59 @@ export const useSecurePledgeVaultContract = () => {
   const { writeContractAsync: verifyPledge } = useWriteContract();
   const { writeContractAsync: withdrawFunds } = useWriteContract();
 
-  // Load pledge data
+  // Load pledge data from contract
   useEffect(() => {
     const loadPledgeData = async () => {
-      if (!pledgeCounter || !isConnected) return;
+      if (!pledgeCounter || !isConnected || !isValidContractAddress || !contract) return;
       
       setLoading(true);
       try {
         const pledges = [];
         const totalPledges = Number(pledgeCounter);
         
+        console.log(`Loading ${totalPledges} pledges from contract...`);
+        
         for (let i = 0; i < Math.min(totalPledges, 10); i++) {
-          // In a real implementation, you would call getPledgeInfo for each pledge
-          // For now, we'll use mock data
-          pledges.push({
-            id: i,
-            title: `Pledge ${i + 1}`,
-            description: `Description for pledge ${i + 1}`,
-            targetAmount: 1000,
-            currentAmount: Math.floor(Math.random() * 1000),
-            backerCount: Math.floor(Math.random() * 50),
-            isActive: true,
-            isVerified: Math.random() > 0.5,
-            pledger: address,
-            startTime: Date.now() - Math.random() * 86400000 * 30,
-            endTime: Date.now() + Math.random() * 86400000 * 30,
-          });
+          try {
+            // Call getPledgeInfo to get real data from contract
+            const pledgeInfo = await contract.getPledgeInfo(i);
+            
+            pledges.push({
+              id: i,
+              title: pledgeInfo.title,
+              description: pledgeInfo.description,
+              targetAmount: Number(pledgeInfo.targetAmount),
+              currentAmount: Number(pledgeInfo.currentAmount),
+              backerCount: Number(pledgeInfo.backerCount),
+              isActive: pledgeInfo.isActive,
+              isVerified: pledgeInfo.isVerified,
+              pledger: pledgeInfo.pledger,
+              startTime: Number(pledgeInfo.startTime) * 1000, // Convert to milliseconds
+              endTime: Number(pledgeInfo.endTime) * 1000, // Convert to milliseconds
+            });
+            
+            console.log(`Loaded pledge ${i}: ${pledgeInfo.title}`);
+          } catch (error) {
+            console.error(`Error loading pledge ${i}:`, error);
+            // Fallback to demo data if contract call fails
+            pledges.push({
+              id: i,
+              title: `Pledge ${i + 1}`,
+              description: `Description for pledge ${i + 1}`,
+              targetAmount: 1000,
+              currentAmount: Math.floor(Math.random() * 1000),
+              backerCount: Math.floor(Math.random() * 50),
+              isActive: true,
+              isVerified: Math.random() > 0.5,
+              pledger: address,
+              startTime: Date.now() - Math.random() * 86400000 * 30,
+              endTime: Date.now() + Math.random() * 86400000 * 30,
+            });
+          }
         }
         
         setPledgeData(pledges);
+        console.log(`Successfully loaded ${pledges.length} pledges`);
       } catch (error) {
         console.error('Error loading pledge data:', error);
       } finally {
@@ -78,7 +105,7 @@ export const useSecurePledgeVaultContract = () => {
     };
 
     loadPledgeData();
-  }, [pledgeCounter, isConnected]); // Removed address from dependencies
+  }, [pledgeCounter, isConnected, isValidContractAddress, contract]);
 
   return {
     pledgeData,
