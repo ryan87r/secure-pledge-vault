@@ -2,8 +2,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Lock, Eye, Clock, Users, Shield } from "lucide-react";
-import { useSecurePledgeVaultContract, useFHEOperations } from "@/hooks/useContract";
+import { useSecurePledgeVaultContract } from "@/hooks/useContract";
+import { useAccount } from "wagmi";
 import { useState } from "react";
+import { Contract } from "ethers";
+import { SECURE_PLEDGE_VAULT_ABI } from "@/lib/contract-abi";
+import { CONTRACT_ADDRESS } from "@/lib/constants";
 
 interface ProjectCardProps {
   id?: number;
@@ -38,26 +42,44 @@ const ProjectCard = ({
   endTime,
   isEncrypted 
 }: ProjectCardProps) => {
-  const { backPledge } = useSecurePledgeVaultContract();
-  const { encryptValue, generateProof } = useFHEOperations();
+  const { address } = useAccount();
+  const { instance, signerPromise } = useSecurePledgeVaultContract();
   const [isBacking, setIsBacking] = useState(false);
+  const [backingAmount, setBackingAmount] = useState("0.1");
 
   const progress = Math.min((currentAmount / targetAmount) * 100, 100);
   const daysLeft = Math.max(0, Math.ceil((endTime - Date.now()) / (1000 * 60 * 60 * 24)));
 
   const handleBackPledge = async () => {
-    if (!id) return;
-    
+    if (!instance || !address || !signerPromise) {
+      alert('Missing wallet or encryption service');
+      return;
+    }
+    if (!backingAmount || parseFloat(backingAmount) <= 0) {
+      alert('Please enter a valid backing amount');
+      return;
+    }
     setIsBacking(true);
     try {
-      // Mock backing amount (in a real app, this would be user input)
-      const backingAmount = 1000; // $1000
-      const encryptedAmount = encryptValue(backingAmount);
-      const proof = generateProof(backingAmount);
-      
-      await backPledge(id, encryptedAmount, proof);
-    } catch (error) {
-      console.error('Error backing pledge:', error);
+      const input = instance.createEncryptedInput(CONTRACT_ADDRESS, address);
+      input.add32(BigInt(Math.floor(parseFloat(backingAmount) * 1e18)));
+      const encryptedInput = await input.encrypt();
+
+      const signer = await signerPromise;
+      const contract = new Contract(CONTRACT_ADDRESS, SECURE_PLEDGE_VAULT_ABI, signer);
+      const tx = await contract.backPledge(
+        id,
+        encryptedInput.handles[0],
+        encryptedInput.inputProof
+      );
+      await tx.wait();
+      alert('Pledge backed successfully!');
+      setBackingAmount("0.1");
+      // Refresh pledge data
+      window.location.reload();
+    } catch (e) {
+      console.error(e);
+      alert('Backing failed');
     } finally {
       setIsBacking(false);
     }
@@ -136,13 +158,31 @@ const ProjectCard = ({
             </div>
           </div>
           
+          {/* Backing Amount Input */}
+          {address && isActive && daysLeft > 0 && (
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">
+                Backing Amount (ETH)
+              </label>
+              <input
+                type="number"
+                value={backingAmount}
+                onChange={(e) => setBackingAmount(e.target.value)}
+                placeholder="0.1"
+                step="0.01"
+                min="0.001"
+                className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+            </div>
+          )}
+          
           <Button 
             variant="default" 
             className="w-full"
             onClick={handleBackPledge}
-            disabled={!isActive || isBacking || daysLeft <= 0}
+            disabled={!isActive || isBacking || daysLeft <= 0 || !address || !instance || !signerPromise}
           >
-            {isBacking ? "Backing..." : daysLeft <= 0 ? "Ended" : "Back This Pledge"}
+            {isBacking ? "Backing..." : daysLeft <= 0 ? "Ended" : !address ? "Connect Wallet" : !instance ? "Initializing..." : "Back This Pledge"}
           </Button>
         </div>
       </div>

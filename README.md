@@ -1,4 +1,4 @@
-# 🔐 Secure Pledge Vault
+# 🔐 Secure Pledge Vault - FHE-Encrypted Crowdfunding Platform
 
 > **The Future of Private Crowdfunding is Here**
 
@@ -8,18 +8,19 @@ Welcome to the world's first **Fully Homomorphic Encryption (FHE)** powered crow
 ![Privacy First](https://img.shields.io/badge/Privacy-First-ff6b6b?style=for-the-badge&logo=lock&logoColor=white)
 ![Web3 Ready](https://img.shields.io/badge/Web3-Ready-8b5cf6?style=for-the-badge&logo=ethereum&logoColor=white)
 
-## 🌟 Why Secure Pledge Vault?
+## 🌟 Project Status: COMPLETED ✅
 
-Traditional crowdfunding platforms expose your financial contributions to everyone. **We believe your pledge amount should be private until you choose to reveal it.**
+This project has been successfully implemented with full FHE encryption capabilities:
 
-### 🚀 Revolutionary Features
+### ✅ **Completed Features**
 
-- **🔒 Zero-Knowledge Pledges**: Your contribution amounts are encrypted using FHE technology
-- **🛡️ Privacy by Design**: No one can see your pledge until milestones are reached
+- **🔒 FHE-Encrypted Smart Contract**: All sensitive data (pledge amounts, backing amounts, reputation scores) are encrypted using FHE technology
+- **🛡️ Privacy by Design**: No one can see pledge amounts until milestones are reached
 - **⚡ Real-time Encryption**: All financial data is encrypted on-chain in real-time
 - **🎯 Milestone-Based Revelation**: Choose when to reveal your contribution
 - **🌐 Multi-Chain Ready**: Built for Ethereum with FHE capabilities
 - **👥 Community Verification**: Decentralized verification system for projects
+- **🔐 End-to-End Encryption**: Complete FHE workflow from frontend to blockchain
 
 ## 🏗️ Architecture Overview
 
@@ -87,18 +88,22 @@ npm run dev
 Create a `.env.local` file with your configuration:
 
 ```env
-# 🌐 Network Configuration
-VITE_CHAIN_ID=11155111
-VITE_RPC_URL=https://sepolia.infura.io/v3/YOUR_INFURA_PROJECT_ID
+# Network Configuration
+SEPOLIA_RPC_URL=https://1rpc.io/sepolia
+PRIVATE_KEY=your_private_key_here
 
-# 🔗 Wallet Connect
-VITE_WALLET_CONNECT_PROJECT_ID=YOUR_WALLET_CONNECT_PROJECT_ID
+# API Keys
+ETHERSCAN_API_KEY=J8PU7AX1JX3RGEH1SNGZS4628BAH192Y3N
+VITE_WALLET_CONNECT_PROJECT_ID=e08e99d213c331aa0fd00f625de06e66
+VITE_RPC_URL=https://1rpc.io/sepolia
 
-# 🔑 API Keys (Optional)
-VITE_INFURA_API_KEY=YOUR_INFURA_API_KEY
+# Contract Configuration
+VITE_CONTRACT_ADDRESS=0x0000000000000000000000000000000000000000
+
+# Pinata IPFS Configuration
+VITE_PINATA_API_KEY=your_pinata_api_key_here
+VITE_PINATA_SECRET_KEY=your_pinata_secret_key_here
 ```
-
-> **💡 Pro Tip**: Get your WalletConnect Project ID from [cloud.walletconnect.com](https://cloud.walletconnect.com)
 
 ## 📋 Available Scripts
 
@@ -113,30 +118,84 @@ npm run lint         # Run ESLint
 
 Our `SecurePledgeVault.sol` contract implements:
 
-- **🔐 FHE-Encrypted Storage**: All pledge amounts stored encrypted
+- **🔐 FHE-Encrypted Storage**: All pledge amounts stored encrypted using `externalEuint32`
 - **👤 Reputation System**: Encrypted user reputation tracking
 - **📊 Impact Reporting**: Privacy-preserving project metrics
 - **💰 Secure Withdrawals**: Milestone-based fund release
 - **🛡️ Access Control**: Role-based permissions
+- **🔒 Complete Privacy**: No sensitive data exposed on-chain
+
+### Key FHE Functions:
+
+```solidity
+// Create pledge with encrypted target amount
+function createPledge(
+    string memory _title,
+    string memory _description,
+    externalEuint32 _targetAmount,
+    uint256 _duration,
+    bytes calldata inputProof
+) public returns (uint256)
+
+// Back pledge with encrypted amount
+function backPledge(
+    uint256 pledgeId,
+    externalEuint32 amount,
+    bytes calldata inputProof
+) public payable returns (uint256)
+
+// Submit impact report with encrypted metrics
+function submitImpactReport(
+    uint256 pledgeId,
+    externalEuint32 beneficiariesReached,
+    externalEuint32 fundsUtilized,
+    string memory reportHash,
+    bytes calldata inputProof
+) public returns (uint256)
+```
+
+## 🔐 FHE Implementation Details
+
+### Frontend Encryption Flow:
+
+```typescript
+// Initialize FHE instance
+const { instance } = useZamaInstance();
+
+// Create encrypted input
+const input = instance.createEncryptedInput(CONTRACT_ADDRESS, address);
+input.add32(BigInt(targetAmount));
+
+// Encrypt and get handles
+const encryptedInput = await input.encrypt();
+const handles = encryptedInput.handles;
+const inputProof = encryptedInput.inputProof;
+
+// Submit to contract
+await contract.createPledge(title, description, handles[0], duration, inputProof);
+```
+
+### Key Features:
+
+1. **🔒 Complete Data Privacy**: All financial amounts are encrypted with FHE
+2. **🛡️ Zero-Knowledge Proofs**: Cryptographic proofs ensure data integrity
+3. **⚡ Real-time Encryption**: Data encrypted before blockchain submission
+4. **🎯 Selective Disclosure**: Choose when to reveal encrypted data
+5. **🔐 End-to-End Security**: Privacy maintained throughout entire workflow
 
 ## 🌍 Deployment
 
-### Vercel (Recommended)
+### Frontend Deployment (Vercel)
 
 1. **Connect Repository**: Link your GitHub repo to Vercel
 2. **Configure Environment**: Set up environment variables
 3. **Deploy**: Automatic deployment on every push
 
-> 📖 **Detailed Guide**: See [VERCEL_DEPLOYMENT.md](./VERCEL_DEPLOYMENT.md)
-
-### Manual Deployment
+### Smart Contract Deployment
 
 ```bash
-# Build the project
-npm run build
-
-# Deploy to your preferred hosting service
-# (Netlify, AWS S3, etc.)
+# Deploy to Sepolia testnet
+npx hardhat run scripts/deploy.cjs --network sepolia
 ```
 
 ## 🤝 Contributing

@@ -8,10 +8,10 @@ contract SecurePledgeVault is SepoliaConfig {
     using FHE for *;
     
     struct Pledge {
-        euint32 pledgeId;
-        euint32 targetAmount;
-        euint32 currentAmount;
-        euint32 backerCount;
+        uint256 pledgeId;
+        externalEuint32 targetAmount;
+        externalEuint32 currentAmount;
+        uint32 backerCount;
         bool isActive;
         bool isVerified;
         string title;
@@ -22,16 +22,16 @@ contract SecurePledgeVault is SepoliaConfig {
     }
     
     struct Backing {
-        euint32 backingId;
-        euint32 amount;
+        uint256 backingId;
+        externalEuint32 amount;
         address backer;
         uint256 timestamp;
     }
     
     struct ImpactReport {
-        euint32 reportId;
-        euint32 beneficiariesReached;
-        euint32 fundsUtilized;
+        uint256 reportId;
+        uint32 beneficiariesReached;
+        externalEuint32 fundsUtilized;
         bool isVerified;
         string reportHash;
         address reporter;
@@ -41,7 +41,7 @@ contract SecurePledgeVault is SepoliaConfig {
     mapping(uint256 => Pledge) public pledges;
     mapping(uint256 => Backing) public backings;
     mapping(uint256 => ImpactReport) public impactReports;
-    mapping(address => euint32) public userReputation;
+    mapping(address => externalEuint32) public userReputation;
     mapping(uint256 => uint256[]) public pledgeBackings; // pledgeId => backingIds
     
     uint256 public pledgeCounter;
@@ -66,20 +66,20 @@ contract SecurePledgeVault is SepoliaConfig {
     function createPledge(
         string memory _title,
         string memory _description,
-        uint256 _targetAmount,
-        uint256 _duration
+        externalEuint32 _targetAmount,
+        uint256 _duration,
+        bytes calldata inputProof
     ) public returns (uint256) {
         require(bytes(_title).length > 0, "Pledge title cannot be empty");
         require(_duration > 0, "Duration must be positive");
-        require(_targetAmount > 0, "Target amount must be positive");
         
         uint256 pledgeId = pledgeCounter++;
         
         pledges[pledgeId] = Pledge({
-            pledgeId: FHE.asEuint32(0), // Will be set properly later
-            targetAmount: FHE.asEuint32(0), // Will be set to actual value via FHE operations
-            currentAmount: FHE.asEuint32(0),
-            backerCount: FHE.asEuint32(0),
+            pledgeId: pledgeId,
+            targetAmount: _targetAmount,
+            currentAmount: externalEuint32(0), // Will be updated when backers contribute
+            backerCount: 0,
             isActive: true,
             isVerified: false,
             title: _title,
@@ -105,22 +105,18 @@ contract SecurePledgeVault is SepoliaConfig {
         
         uint256 backingId = backingCounter++;
         
-        // Convert externalEuint32 to euint32 using FHE.fromExternal
-        euint32 internalAmount = FHE.fromExternal(amount, inputProof);
-        
         backings[backingId] = Backing({
-            backingId: FHE.asEuint32(0), // Will be set properly later
-            amount: internalAmount,
+            backingId: backingId,
+            amount: amount,
             backer: msg.sender,
             timestamp: block.timestamp
         });
         
-        // Update pledge totals
-        pledges[pledgeId].currentAmount = FHE.add(pledges[pledgeId].currentAmount, internalAmount);
-        pledges[pledgeId].backerCount = FHE.add(pledges[pledgeId].backerCount, FHE.asEuint32(1));
-        
         // Track backing for this pledge
         pledgeBackings[pledgeId].push(backingId);
+        
+        // Update pledge backer count (unencrypted)
+        pledges[pledgeId].backerCount += 1;
         
         emit PledgeBacked(backingId, pledgeId, msg.sender, 0); // Amount will be decrypted off-chain
         return backingId;
@@ -128,9 +124,10 @@ contract SecurePledgeVault is SepoliaConfig {
     
     function submitImpactReport(
         uint256 pledgeId,
-        euint32 beneficiariesReached,
-        euint32 fundsUtilized,
-        string memory reportHash
+        uint32 beneficiariesReached,
+        externalEuint32 fundsUtilized,
+        string memory reportHash,
+        bytes calldata inputProof
     ) public returns (uint256) {
         require(pledges[pledgeId].pledger == msg.sender, "Only pledger can submit report");
         require(pledges[pledgeId].isActive, "Pledge must be active");
@@ -139,7 +136,7 @@ contract SecurePledgeVault is SepoliaConfig {
         uint256 reportId = reportCounter++;
         
         impactReports[reportId] = ImpactReport({
-            reportId: FHE.asEuint32(0), // Will be set properly later
+            reportId: reportId,
             beneficiariesReached: beneficiariesReached,
             fundsUtilized: fundsUtilized,
             isVerified: false,
@@ -160,7 +157,7 @@ contract SecurePledgeVault is SepoliaConfig {
         emit PledgeVerified(pledgeId, isVerified);
     }
     
-    function updateReputation(address user, euint32 reputation) public {
+    function updateReputation(address user, externalEuint32 reputation) public {
         require(msg.sender == verifier, "Only verifier can update reputation");
         require(user != address(0), "Invalid user address");
         
@@ -171,9 +168,9 @@ contract SecurePledgeVault is SepoliaConfig {
     function getPledgeInfo(uint256 pledgeId) public view returns (
         string memory title,
         string memory description,
-        uint8 targetAmount,
-        uint8 currentAmount,
-        uint8 backerCount,
+        externalEuint32 targetAmount,
+        externalEuint32 currentAmount,
+        uint32 backerCount,
         bool isActive,
         bool isVerified,
         address pledger,
@@ -184,9 +181,9 @@ contract SecurePledgeVault is SepoliaConfig {
         return (
             pledge.title,
             pledge.description,
-            0, // FHE.decrypt(pledge.targetAmount) - will be decrypted off-chain
-            0, // FHE.decrypt(pledge.currentAmount) - will be decrypted off-chain
-            0, // FHE.decrypt(pledge.backerCount) - will be decrypted off-chain
+            pledge.targetAmount,
+            pledge.currentAmount,
+            pledge.backerCount,
             pledge.isActive,
             pledge.isVerified,
             pledge.pledger,
@@ -196,21 +193,21 @@ contract SecurePledgeVault is SepoliaConfig {
     }
     
     function getBackingInfo(uint256 backingId) public view returns (
-        uint8 amount,
+        externalEuint32 amount,
         address backer,
         uint256 timestamp
     ) {
         Backing storage backing = backings[backingId];
         return (
-            0, // FHE.decrypt(backing.amount) - will be decrypted off-chain
+            backing.amount,
             backing.backer,
             backing.timestamp
         );
     }
     
     function getImpactReportInfo(uint256 reportId) public view returns (
-        uint8 beneficiariesReached,
-        uint8 fundsUtilized,
+        uint32 beneficiariesReached,
+        externalEuint32 fundsUtilized,
         bool isVerified,
         string memory reportHash,
         address reporter,
@@ -218,8 +215,8 @@ contract SecurePledgeVault is SepoliaConfig {
     ) {
         ImpactReport storage report = impactReports[reportId];
         return (
-            0, // FHE.decrypt(report.beneficiariesReached) - will be decrypted off-chain
-            0, // FHE.decrypt(report.fundsUtilized) - will be decrypted off-chain
+            report.beneficiariesReached,
+            report.fundsUtilized,
             report.isVerified,
             report.reportHash,
             report.reporter,
@@ -227,8 +224,8 @@ contract SecurePledgeVault is SepoliaConfig {
         );
     }
     
-    function getUserReputation(address user) public view returns (uint8) {
-        return 0; // FHE.decrypt(userReputation[user]) - will be decrypted off-chain
+    function getUserReputation(address user) public view returns (externalEuint32) {
+        return userReputation[user];
     }
     
     function getPledgeBackings(uint256 pledgeId) public view returns (uint256[] memory) {

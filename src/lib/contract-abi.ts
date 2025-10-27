@@ -1,6 +1,9 @@
-// Secure Pledge Vault Contract ABI
 export const SECURE_PLEDGE_VAULT_ABI = [
-  // Events
+  {
+    "inputs": [],
+    "stateMutability": "nonpayable",
+    "type": "constructor"
+  },
   {
     "anonymous": false,
     "inputs": [
@@ -32,6 +35,12 @@ export const SECURE_PLEDGE_VAULT_ABI = [
       {
         "indexed": true,
         "internalType": "uint256",
+        "name": "backingId",
+        "type": "uint256"
+      },
+      {
+        "indexed": true,
+        "internalType": "uint256",
         "name": "pledgeId",
         "type": "uint256"
       },
@@ -43,9 +52,9 @@ export const SECURE_PLEDGE_VAULT_ABI = [
       },
       {
         "indexed": false,
-        "internalType": "uint32",
+        "internalType": "uint256",
         "name": "amount",
-        "type": "uint32"
+        "type": "uint256"
       }
     ],
     "name": "PledgeBacked",
@@ -57,17 +66,23 @@ export const SECURE_PLEDGE_VAULT_ABI = [
       {
         "indexed": true,
         "internalType": "uint256",
+        "name": "reportId",
+        "type": "uint256"
+      },
+      {
+        "indexed": true,
+        "internalType": "uint256",
         "name": "pledgeId",
         "type": "uint256"
       },
       {
-        "indexed": false,
-        "internalType": "bool",
-        "name": "isVerified",
-        "type": "bool"
+        "indexed": true,
+        "internalType": "address",
+        "name": "reporter",
+        "type": "address"
       }
     ],
-    "name": "PledgeVerified",
+    "name": "ImpactReportSubmitted",
     "type": "event"
   },
   {
@@ -81,26 +96,13 @@ export const SECURE_PLEDGE_VAULT_ABI = [
       },
       {
         "indexed": false,
-        "internalType": "uint32",
+        "internalType": "uint256",
         "name": "reputation",
-        "type": "uint32"
+        "type": "uint256"
       }
     ],
     "name": "ReputationUpdated",
     "type": "event"
-  },
-  
-  // Functions
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "_verifier",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "nonpayable",
-    "type": "constructor"
   },
   {
     "inputs": [
@@ -115,14 +117,19 @@ export const SECURE_PLEDGE_VAULT_ABI = [
         "type": "string"
       },
       {
-        "internalType": "uint256",
+        "internalType": "bytes32",
         "name": "_targetAmount",
-        "type": "uint256"
+        "type": "bytes32"
       },
       {
         "internalType": "uint256",
         "name": "_duration",
         "type": "uint256"
+      },
+      {
+        "internalType": "bytes",
+        "name": "inputProof",
+        "type": "bytes"
       }
     ],
     "name": "createPledge",
@@ -144,9 +151,9 @@ export const SECURE_PLEDGE_VAULT_ABI = [
         "type": "uint256"
       },
       {
-        "internalType": "bytes",
-        "name": "encryptedAmount",
-        "type": "bytes"
+        "internalType": "bytes32",
+        "name": "amount",
+        "type": "bytes32"
       },
       {
         "internalType": "bytes",
@@ -162,7 +169,7 @@ export const SECURE_PLEDGE_VAULT_ABI = [
         "type": "uint256"
       }
     ],
-    "stateMutability": "payable",
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
@@ -173,13 +180,34 @@ export const SECURE_PLEDGE_VAULT_ABI = [
         "type": "uint256"
       },
       {
-        "internalType": "bool",
-        "name": "isVerified",
-        "type": "bool"
+        "internalType": "uint32",
+        "name": "beneficiariesReached",
+        "type": "uint32"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "fundsUtilized",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "string",
+        "name": "reportHash",
+        "type": "string"
+      },
+      {
+        "internalType": "bytes",
+        "name": "inputProof",
+        "type": "bytes"
       }
     ],
-    "name": "verifyPledge",
-    "outputs": [],
+    "name": "submitImpactReport",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
     "stateMutability": "nonpayable",
     "type": "function"
   },
@@ -191,8 +219,13 @@ export const SECURE_PLEDGE_VAULT_ABI = [
         "type": "address"
       },
       {
-        "internalType": "bytes",
+        "internalType": "bytes32",
         "name": "encryptedReputation",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "bytes",
+        "name": "inputProof",
         "type": "bytes"
       }
     ],
@@ -222,19 +255,19 @@ export const SECURE_PLEDGE_VAULT_ABI = [
         "type": "string"
       },
       {
-        "internalType": "uint8",
+        "internalType": "bytes32",
         "name": "targetAmount",
-        "type": "uint8"
+        "type": "bytes32"
       },
       {
-        "internalType": "uint8",
+        "internalType": "bytes32",
         "name": "currentAmount",
-        "type": "uint8"
+        "type": "bytes32"
       },
       {
-        "internalType": "uint8",
+        "internalType": "uint32",
         "name": "backerCount",
-        "type": "uint8"
+        "type": "uint32"
       },
       {
         "internalType": "bool",
@@ -276,13 +309,57 @@ export const SECURE_PLEDGE_VAULT_ABI = [
     "name": "getBackingInfo",
     "outputs": [
       {
-        "internalType": "uint8",
+        "internalType": "bytes32",
         "name": "amount",
-        "type": "uint8"
+        "type": "bytes32"
       },
       {
         "internalType": "address",
         "name": "backer",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "timestamp",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "reportId",
+        "type": "uint256"
+      }
+    ],
+    "name": "getImpactReportInfo",
+    "outputs": [
+      {
+        "internalType": "uint32",
+        "name": "beneficiariesReached",
+        "type": "uint32"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "fundsUtilized",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "bool",
+        "name": "isVerified",
+        "type": "bool"
+      },
+      {
+        "internalType": "string",
+        "name": "reportHash",
+        "type": "string"
+      },
+      {
+        "internalType": "address",
+        "name": "reporter",
         "type": "address"
       },
       {
@@ -305,9 +382,9 @@ export const SECURE_PLEDGE_VAULT_ABI = [
     "name": "getUserReputation",
     "outputs": [
       {
-        "internalType": "uint8",
+        "internalType": "bytes32",
         "name": "",
-        "type": "uint8"
+        "type": "bytes32"
       }
     ],
     "stateMutability": "view",
@@ -368,6 +445,214 @@ export const SECURE_PLEDGE_VAULT_ABI = [
   {
     "inputs": [],
     "name": "backingCounter",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "reportCounter",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "pledges",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "pledgeId",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "targetAmount",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "currentAmount",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "uint32",
+        "name": "backerCount",
+        "type": "uint32"
+      },
+      {
+        "internalType": "bool",
+        "name": "isActive",
+        "type": "bool"
+      },
+      {
+        "internalType": "bool",
+        "name": "isVerified",
+        "type": "bool"
+      },
+      {
+        "internalType": "string",
+        "name": "title",
+        "type": "string"
+      },
+      {
+        "internalType": "string",
+        "name": "description",
+        "type": "string"
+      },
+      {
+        "internalType": "address",
+        "name": "pledger",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "startTime",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "endTime",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "backings",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "backingId",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "amount",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "address",
+        "name": "backer",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "timestamp",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "impactReports",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "reportId",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint32",
+        "name": "beneficiariesReached",
+        "type": "uint32"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "fundsUtilized",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "bool",
+        "name": "isVerified",
+        "type": "bool"
+      },
+      {
+        "internalType": "string",
+        "name": "reportHash",
+        "type": "string"
+      },
+      {
+        "internalType": "address",
+        "name": "reporter",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "timestamp",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "name": "userReputation",
+    "outputs": [
+      {
+        "internalType": "bytes32",
+        "name": "",
+        "type": "bytes32"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "pledgeBackings",
     "outputs": [
       {
         "internalType": "uint256",
