@@ -18,7 +18,7 @@ export default defineConfig({
     global: 'globalThis',
     'process.env': {}
   },
-  optimizeDeps: { 
+  optimizeDeps: {
     include: ['@zama-fhe/relayer-sdk/bundle'],
     exclude: ['@zama-fhe/relayer-sdk']
   },
@@ -29,7 +29,7 @@ export default defineConfig({
   },
   build: {
     rollupOptions: {
-      external: ['@zama-fhe/relayer-sdk/bundle']
+      external: []
     }
   }
 });
