@@ -11,8 +11,8 @@ const CONTRACT_ADDRESS = contractAddresses.securePledgeVault || '0x...';
 
 export const useSecurePledgeVaultContract = () => {
   const { address, isConnected } = useAccount();
-  const { instance } = useZamaInstance();
-  const signerPromise = useEthersSigner();
+  const { instance, isLoading: fheLoading, error: fheError, isInitialized } = useZamaInstance();
+  const signer = useEthersSigner();
   const [pledgeData, setPledgeData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -90,40 +90,79 @@ export const useSecurePledgeVaultContract = () => {
     backingCounter: Number(backingCounter || 0),
     isConnected,
     instance,
-    signerPromise,
+    signer,
     isValidContractAddress,
+    fheLoading,
+    fheError,
+    isInitialized,
     createPledge: async (title: string, description: string, targetAmount: number, duration: number) => {
-      if (!instance || !address) {
+      if (!instance || !address || !signer) {
         throw new Error('Missing wallet or encryption service');
       }
       
-      const input = instance.createEncryptedInput(CONTRACT_ADDRESS, address);
-      input.add32(BigInt(targetAmount));
-      const encryptedInput = await input.encrypt();
-      
-      return createPledge({
-        address: CONTRACT_ADDRESS as `0x${string}`,
-        abi: SECURE_PLEDGE_VAULT_ABI,
-        functionName: 'createPledge',
-        args: [title, description, encryptedInput.handles[0], BigInt(duration), encryptedInput.inputProof],
-      });
+      try {
+        console.log('🚀 Starting FHE pledge creation process...');
+        console.log('📊 Input parameters:', { title, description, targetAmount, duration });
+        
+        console.log('🔄 Step 1: Creating encrypted input...');
+        const input = instance.createEncryptedInput(CONTRACT_ADDRESS, address);
+        
+        console.log('🔄 Step 2: Adding target amount to encrypted input...');
+        input.add32(BigInt(targetAmount));
+        
+        console.log('🔄 Step 3: Encrypting data...');
+        const encryptedInput = await input.encrypt();
+        console.log('✅ Encryption completed, handles count:', encryptedInput.handles.length);
+        
+        console.log('🔄 Step 4: Calling contract...');
+        const result = await createPledge({
+          address: CONTRACT_ADDRESS as `0x${string}`,
+          abi: SECURE_PLEDGE_VAULT_ABI,
+          functionName: 'createPledge',
+          args: [title, description, encryptedInput.handles[0], BigInt(duration), encryptedInput.inputProof],
+        });
+        
+        console.log('✅ Pledge creation successful!');
+        return result;
+      } catch (err) {
+        console.error('❌ Error creating pledge:', err);
+        throw err;
+      }
     },
     backPledge: async (pledgeId: number, amount: number) => {
-      if (!instance || !address) {
+      if (!instance || !address || !signer) {
         throw new Error('Missing wallet or encryption service');
       }
       
-      const input = instance.createEncryptedInput(CONTRACT_ADDRESS, address);
-      input.add32(BigInt(amount));
-      const encryptedInput = await input.encrypt();
-      
-      return backPledge({
-        address: CONTRACT_ADDRESS as `0x${string}`,
-        abi: SECURE_PLEDGE_VAULT_ABI,
-        functionName: 'backPledge',
-        args: [BigInt(pledgeId), encryptedInput.handles[0], encryptedInput.inputProof],
-        value: BigInt(1000000000000000000), // 1 ETH in wei
-      });
+      try {
+        console.log('🚀 Starting FHE pledge backing process...');
+        console.log('📊 Input parameters:', { pledgeId, amount });
+        
+        console.log('🔄 Step 1: Creating encrypted input...');
+        const input = instance.createEncryptedInput(CONTRACT_ADDRESS, address);
+        
+        console.log('🔄 Step 2: Adding backing amount to encrypted input...');
+        input.add32(BigInt(amount));
+        
+        console.log('🔄 Step 3: Encrypting data...');
+        const encryptedInput = await input.encrypt();
+        console.log('✅ Encryption completed, handles count:', encryptedInput.handles.length);
+        
+        console.log('🔄 Step 4: Calling contract...');
+        const result = await backPledge({
+          address: CONTRACT_ADDRESS as `0x${string}`,
+          abi: SECURE_PLEDGE_VAULT_ABI,
+          functionName: 'backPledge',
+          args: [BigInt(pledgeId), encryptedInput.handles[0], encryptedInput.inputProof],
+          value: BigInt(1000000000000000000), // 1 ETH in wei
+        });
+        
+        console.log('✅ Pledge backing successful!');
+        return result;
+      } catch (err) {
+        console.error('❌ Error backing pledge:', err);
+        throw err;
+      }
     },
     verifyPledge: (pledgeId: number, isVerified: boolean) => {
       return verifyPledge({

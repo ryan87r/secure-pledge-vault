@@ -6,16 +6,21 @@ import path from "path";
 export default defineConfig({
   server: {
     host: "::",
-    port: 8080,
+    port: 3000,
     headers: {
       'Cross-Origin-Opener-Policy': 'same-origin',
-      'Cross-Origin-Embedder-Policy': 'require-corp'
+      'Cross-Origin-Embedder-Policy': 'require-corp',
+      'Cross-Origin-Resource-Policy': 'cross-origin'
     }
   },
   plugins: [react()],
-  define: { global: 'globalThis' },
+  define: { 
+    global: 'globalThis',
+    'process.env': {}
+  },
   optimizeDeps: { 
-    include: ['@zama-fhe/relayer-sdk/bundle']
+    include: ['@zama-fhe/relayer-sdk/bundle'],
+    exclude: ['@zama-fhe/relayer-sdk']
   },
   resolve: {
     alias: {
@@ -23,8 +28,8 @@ export default defineConfig({
     },
   },
   build: {
-    outDir: "dist",
-    sourcemap: false,
-    minify: "esbuild",
-  },
+    rollupOptions: {
+      external: ['@zama-fhe/relayer-sdk/bundle']
+    }
+  }
 });

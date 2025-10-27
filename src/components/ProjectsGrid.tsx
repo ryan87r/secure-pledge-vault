@@ -16,7 +16,15 @@ const CATEGORY_MAP: Record<number, string> = {
 };
 
 const ProjectsGrid = () => {
-  const { pledgeData, loading, isConnected, isValidContractAddress } = useSecurePledgeVaultContract();
+  const { 
+    pledgeData, 
+    loading, 
+    isConnected, 
+    isValidContractAddress,
+    fheLoading,
+    fheError,
+    isInitialized
+  } = useSecurePledgeVaultContract();
   const [projects, setProjects] = useState<any[]>([]);
   const [demoData, setDemoData] = useState<any>(null);
 
@@ -96,23 +104,39 @@ const ProjectsGrid = () => {
           </p>
         </div>
         
-        {loading ? (
+        {loading || fheLoading ? (
           <div className="flex justify-center items-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+              <div className="text-muted-foreground">
+                {fheLoading ? "Initializing FHE encryption service..." : "Loading pledges..."}
+              </div>
+              {fheError && (
+                <div className="text-red-500 text-sm mt-2">
+                  FHE Error: {fheError}
+                </div>
+              )}
+            </div>
           </div>
         ) : projects.length === 0 ? (
           <div className="text-center py-12">
             <div className="text-muted-foreground text-lg mb-4">
-              {!isValidContractAddress ? "Demo mode: Contract not deployed yet" : 
+              {!isInitialized ? "Initializing encryption service..." :
+               !isValidContractAddress ? "Demo mode: Contract not deployed yet" : 
                isConnected ? "No pledges found. Be the first to create one!" : 
                "Connect your wallet to view pledges"}
             </div>
-            {!isValidContractAddress && (
+            {!isInitialized && (
+              <div className="text-sm text-muted-foreground">
+                Setting up FHE encryption for secure transactions
+              </div>
+            )}
+            {!isValidContractAddress && isInitialized && (
               <div className="text-sm text-muted-foreground">
                 Using demo data. Deploy contract to enable real functionality.
               </div>
             )}
-            {!isConnected && isValidContractAddress && (
+            {!isConnected && isValidContractAddress && isInitialized && (
               <div className="text-sm text-muted-foreground">
                 Connect your wallet to interact with the platform
               </div>
